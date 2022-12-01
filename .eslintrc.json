@@ -1,0 +1,73 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "extends": [
+        "plugin:react/recommended",
+        "airbnb",
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 12,
+        "sourceType": "module"
+    },
+    "plugins": [
+        "react",
+        "@typescript-eslint",
+        "react-hooks"
+    ],
+    "rules": {
+        "max-len": [
+            "warn",
+            {
+                "code": 120,
+                "ignoreComments": true,
+                "ignorePattern": "^(import|export) .+"
+            }
+        ],
+        // custom
+        "@typescript-eslint/array-type": "error", // использовать <T>[] вместо Array<T>
+        "@typescript-eslint/ban-ts-comment": "error", // запрет на ts ignore
+        "@typescript-eslint/ban-tslint-comment": "error", // запрет на es lint ignore
+        "@typescript-eslint/explicit-function-return-type": "error", // всегда указывать возвращаемое значение функи
+        "@typescript-eslint/no-inferrable-types": [0], // возможность указать тип переменной даже когда это и так понятно
+        "@typescript-eslint/no-unused-vars": [ 1, { "args": "none" } ], // ошибка при наличии неиспользуемой переменной
+        "react/prop-types": [0], // позволяет нормально писать типы для пропсов
+        "react/jsx-props-no-spreading": "off", // позволяет спредить пропсы
+        "react/jsx-no-useless-fragment": "off", // позволяет писать фрагменты
+        "react/function-component-definition": [1, {
+            "namedComponents": "arrow-function",
+            "unnamedComponents": "arrow-function"
+        }], // arrow-function для компонентов
+        "react/require-default-props": "off", // позволяет не использовать default-props
+        "react/no-unstable-nested-components": "off",
+        "no-param-reassign": "off", // позволяет менять значения объекта
+        "consistent-return": "off",
+        "camelcase": "off",
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": ["error"],
+        "new-cap": "off",
+
+        "react/no-array-index-key": "off", // можно юзать индекс в качестве key в map (не желательно)
+
+        // basic (фиксят базовые проблемы eslint для react)
+        "no-use-before-define": "off",
+        "@typescript-eslint/no-use-before-define": ["error"],
+        "react/jsx-filename-extension": [ "warn", {"extensions": [".tsx"]} ],
+        "import/extensions": ["error", "ignorePackages", {"ts": "never", "tsx": "never"}],
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn",
+        "import/prefer-default-export": "off"
+    },
+    "settings": {
+        "import/resolver": {
+            "typescript": {}
+        }
+    }
+}

@@ -1,0 +1,10 @@
+*.css
+*.svg
+*.js
+.gitlab
+.idea
+.storybook
+.vscode
+.husky
+node_modules
+styles.*
