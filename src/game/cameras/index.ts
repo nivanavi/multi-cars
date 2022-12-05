@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { eventBusSubscriptions } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
+import { ROOT_CAR_ID } from '../../App';
 
 const CAMERA_OPTIONS = {
 	maxRotateY: Math.PI / 2,
@@ -78,13 +79,9 @@ export const setupCamera = (scene: THREE.Scene): { camera: THREE.PerspectiveCame
 	});
 
 	eventBusSubscriptions.subscribeOnCarMove({
-		callback: ({
-			payload: {
-				id,
-				chassis: { position },
-			},
-		}) => {
-			if (id === 'root') CAMERA_OPTIONS.lookAtPosition.set(position.x, position.y, position.z);
+		callback: ({ payload: { id, chassis } }) => {
+			if (id === ROOT_CAR_ID && chassis)
+				CAMERA_OPTIONS.lookAtPosition.set(chassis.position.x, chassis.position.y, chassis.position.z);
 		},
 	});
 

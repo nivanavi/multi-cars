@@ -28,7 +28,7 @@ enum CORE_EVENTS {
 }
 
 type SubscribeOnTickCmd = {
-	callback: (payload: Pick<TriggerOnTickCmd, 'payload'>) => void;
+	callback: () => void;
 };
 type SubscribeOnResizeCmd = {
 	callback: (payload: Pick<TriggerOnResizeCmd, 'payload'>) => void;
@@ -40,26 +40,45 @@ type SubscribeOnCarMoveCmd = {
 	callback: (payload: Pick<TriggerOnCarMoveCmd, 'payload'>) => void;
 };
 
-type TriggerOnTickCmd = {
-	payload: {
-		delta: number;
-	};
-};
-
 type BodyInformation = {
 	position: CANNON.Vec3;
 	quaternion: CANNON.Quaternion;
 };
 
+export type CarMoveSpecs = {
+	/**
+	 * текущее значение повернутости колес
+	 */
+	steering: number;
+	/**
+	 * текущее ускорение машины
+	 */
+	accelerating: number;
+	/**
+	 * текущая сила торможения
+	 */
+	brake: number;
+	/**
+	 * текущее положение шасси
+	 */
+	chassis?: {
+		position: CANNON.Vec3;
+		quaternion: CANNON.Quaternion;
+	};
+	/**
+	 * текущее положение колес
+	 */
+	wheels?: BodyInformation[];
+	/**
+	 * флаг того что с машиной ничего не происходит
+	 */
+	isNotMove: boolean;
+};
+
 type TriggerOnCarMoveCmd = {
 	payload: {
 		id: string;
-		chassis: {
-			position: CANNON.Vec3;
-			quaternion: CANNON.Quaternion;
-		};
-		wheels: BodyInformation[];
-	};
+	} & CarMoveSpecs;
 };
 type TriggerOnResizeCmd = {
 	payload: {
@@ -85,8 +104,8 @@ export const eventBusSubscriptions = {
 };
 
 export const eventBusTriggers = {
-	triggerOnTick: (payload: TriggerOnTickCmd): void => {
-		EVENT_EMITTER.emit(CORE_EVENTS.ON_TICK, payload);
+	triggerOnTick: (): void => {
+		EVENT_EMITTER.emit(CORE_EVENTS.ON_TICK);
 	},
 	triggerOnResize: (payload: TriggerOnResizeCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_RESIZE, payload);

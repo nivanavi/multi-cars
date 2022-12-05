@@ -23,3 +23,16 @@ export const copyPositions: (props: {
 		new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w)
 	);
 };
+
+/**
+ * Проверяет валидность json
+ */
+export const isJsonString = (str: string | undefined): boolean => {
+	if (!str) return false;
+	try {
+		JSON.parse(str);
+	} catch (e) {
+		return false;
+	}
+	return true;
+};
