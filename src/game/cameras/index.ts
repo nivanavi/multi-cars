@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { eventBusSubscriptions } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
-import { ROOT_CAR_ID } from '../../App';
 
 const CAMERA_OPTIONS = {
 	maxRotateY: Math.PI / 2,
@@ -24,7 +23,7 @@ const getRotateY = (diffRotate: number): number => {
 };
 const getRotateX = (diffRotate: number): number =>
 	CAMERA_OPTIONS.rotateX + changeNumberSign(diffRotate) / CAMERA_OPTIONS.moveSenseDivider;
-export const setupCamera = (scene: THREE.Scene): { camera: THREE.PerspectiveCamera } => {
+export const setupCamera = (scene: THREE.Scene, watchCarId: string): { camera: THREE.PerspectiveCamera } => {
 	const camera = new THREE.PerspectiveCamera(50, 1, 1, 10000);
 
 	const cameraContainer = new THREE.Group();
@@ -80,7 +79,7 @@ export const setupCamera = (scene: THREE.Scene): { camera: THREE.PerspectiveCame
 
 	eventBusSubscriptions.subscribeOnCarMove({
 		callback: ({ payload: { id, chassis } }) => {
-			if (id === ROOT_CAR_ID && chassis)
+			if (id === watchCarId && chassis)
 				CAMERA_OPTIONS.lookAtPosition.set(chassis.position.x, chassis.position.y, chassis.position.z);
 		},
 	});

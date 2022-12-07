@@ -11,9 +11,9 @@ import { setupLights } from './game/lights';
 import { setupCar } from './game/car';
 import CannonDebugRenderer from './libs/cannonDebug';
 import { carPhysicEmulator } from './game/carPhysicsEmulator';
-import { isJsonString } from './libs/utils';
+import { setupWebsocket } from './websocket';
 
-export const ROOT_CAR_ID = v4();
+const ROOT_CAR_ID = v4();
 window.addEventListener('resize', () => {
 	eventBusTriggers.triggerOnResize({
 		payload: {
@@ -34,66 +34,25 @@ const { physicWorld } = setupPhysics();
 physicWorld.addEventListener('postStep', () => eventBusTriggers.triggerOnTickPhysic());
 
 const scene = new THREE.Scene();
-const { camera } = setupCamera(scene);
+const { camera } = setupCamera(scene, ROOT_CAR_ID);
 setupLights(scene);
-setupCar(physicWorld);
+setupCar(physicWorld, ROOT_CAR_ID);
 
-// fake car start
-const websocket = new WebSocket('ws://localhost:1337');
-
-websocket.onopen = (): void => {
-	console.log('подключился', ROOT_CAR_ID);
-};
-
-const CARS_ON_MAP: { [key: string]: ReturnType<typeof carPhysicEmulator> } = {};
+const CARS_ON_MAP = new Map<string, ReturnType<typeof carPhysicEmulator>>();
 
 const deleteCarHandler = (id: string): void => {
-	console.log('DELETE ', id);
-	CARS_ON_MAP[id]?.delete();
-	delete CARS_ON_MAP[id];
+	CARS_ON_MAP.get(id)?.delete();
+	CARS_ON_MAP.delete(id);
+};
+const updateCarHandler = (data: Omit<CarMoveSpecs, 'isNotMove'>): void => {
+	if (!CARS_ON_MAP.get(data.id)) CARS_ON_MAP.set(data.id, carPhysicEmulator(physicWorld, data.id, true));
+	CARS_ON_MAP.get(data.id)?.updateSpecs({
+		...data,
+		isNotMove: false,
+	});
 };
 
-websocket.onmessage = (message): void => {
-	if (!isJsonString(message.data)) return;
-	const allData: { action: 'CAR_MOVE' | 'CAR_DELETE'; sender: string; data: string } = JSON.parse(message.data);
-	if (!isJsonString(allData.data)) return;
-	const data: { id: string } & CarMoveSpecs = JSON.parse(allData.data);
-	const senderPlusCarId: string = allData.sender;
-
-	switch (allData.action) {
-		case 'CAR_DELETE':
-			deleteCarHandler(data.id);
-			break;
-		case 'CAR_MOVE':
-			if (data.id === ROOT_CAR_ID) return;
-			if (!CARS_ON_MAP[senderPlusCarId]) CARS_ON_MAP[senderPlusCarId] = carPhysicEmulator(physicWorld, data.id, true);
-			CARS_ON_MAP[senderPlusCarId].updateSpecs({
-				accelerating: data.accelerating,
-				steering: data.steering,
-				brake: data.brake,
-				chassis: data.chassis,
-				wheels: data.wheels,
-				isNotMove: false,
-			});
-			break;
-		default:
-			break;
-	}
-};
-
-eventBusSubscriptions.subscribeOnCarMove({
-	callback: ({ payload: { chassis, steering, accelerating, brake, id, isNotMove } }) => {
-		if (!websocket.readyState) return;
-		if (isNotMove) return;
-		websocket.send(
-			JSON.stringify({
-				action: 'CAR_MOVE',
-				data: JSON.stringify({ chassis, steering, accelerating, brake, id }),
-			})
-		);
-	},
-});
-// fake car end
+setupWebsocket(ROOT_CAR_ID, deleteCarHandler, updateCarHandler);
 
 // debug
 const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
@@ -160,12 +119,12 @@ export const MultiCar: React.FC = () => {
 
 	setupRenderer(canvas, scene, camera);
 
-	React.useEffect(
-		() => () => {
-			deleteCarHandler(ROOT_CAR_ID);
-		},
-		[]
-	);
+	// React.useEffect(
+	// 	() => () => {
+	// 		deleteCarHandler(ROOT_CAR_ID);
+	// 	},
+	// 	[]
+	// );
 
 	React.useEffect(() => {
 		setupRenderer(canvas, scene, camera);

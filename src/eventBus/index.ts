@@ -47,6 +47,10 @@ type BodyInformation = {
 
 export type CarMoveSpecs = {
 	/**
+	 * id движущейся машины
+	 */
+	id: string;
+	/**
 	 * текущее значение повернутости колес
 	 */
 	steering: number;
@@ -76,9 +80,7 @@ export type CarMoveSpecs = {
 };
 
 type TriggerOnCarMoveCmd = {
-	payload: {
-		id: string;
-	} & CarMoveSpecs;
+	payload: CarMoveSpecs;
 };
 type TriggerOnResizeCmd = {
 	payload: {

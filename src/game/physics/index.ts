@@ -27,6 +27,12 @@ const groundCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, 
 	contactEquationStiffness: 1000,
 });
 
+const carCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, carPhysicsMaterial, {
+	friction: 0.01,
+	restitution: 0,
+	contactEquationStiffness: 1000,
+});
+
 export const setupPhysics = (): {
 	physicWorld: CANNON.World;
 } => {
@@ -44,6 +50,7 @@ export const setupPhysics = (): {
 	// добавление взаимодействия 2ух материалов
 	// physicWorld.addContactMaterial(groundWheelContactMaterial);
 	physicWorld.addContactMaterial(groundCarContactMaterial);
+	physicWorld.addContactMaterial(carCarContactMaterial);
 
 	eventBusSubscriptions.subscribeOnTick({
 		callback: () => {

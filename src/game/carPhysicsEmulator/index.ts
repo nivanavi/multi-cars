@@ -115,7 +115,7 @@ export const carPhysicEmulator = (
 
 	const wheelBodies: CANNON.Body[] = [];
 	vehicle.wheelInfos.forEach(wheel => {
-		const cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 2, 20);
+		const cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 1.5, 20);
 		const wheelBody = new CANNON.Body({
 			mass: 0,
 			// material: wheelMaterial,

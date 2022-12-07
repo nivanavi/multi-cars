@@ -1,6 +1,5 @@
 import * as CANNON from 'cannon-es';
 import { CarMoveSpecs, eventBusSubscriptions } from '../../eventBus';
-import { ROOT_CAR_ID } from '../../App';
 import { carPhysicEmulator } from '../carPhysicsEmulator';
 
 const CAR_SETTINGS = {
@@ -72,13 +71,14 @@ const CAR_SETTINGS = {
 	boost: false,
 };
 
-export const setupCar = (physicWorld: CANNON.World): void => {
-	const { chassis, updateSpecs } = carPhysicEmulator(physicWorld, ROOT_CAR_ID);
+export const setupCar = (physicWorld: CANNON.World, id: string): void => {
+	const { chassis, updateSpecs } = carPhysicEmulator(physicWorld, id);
 	const CURRENT_SPECS: CarMoveSpecs = {
 		accelerating: 0,
 		brake: 0,
 		steering: 0,
 		isNotMove: false,
+		id,
 	};
 
 	const checkCornerCaseSteering = (): void => {
@@ -198,6 +198,8 @@ export const setupCar = (physicWorld: CANNON.World): void => {
 	});
 
 	// todo нормально реализовать то когда машина не двигается
+	// todo сверстать интерф
+	// todo написать сервер так что бы он не слал события движения машинки типа их же отправителю
 	const keyPressHandler: (ev: KeyboardEvent, isPressed: boolean) => void = (ev, isPressed) => {
 		if (ev.repeat) return;
 		switch (ev.code) {
