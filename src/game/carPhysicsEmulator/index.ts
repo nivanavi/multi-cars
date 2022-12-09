@@ -4,9 +4,9 @@ import { changeNumberSign } from '../../libs/utils';
 import { carPhysicsMaterial } from '../physics';
 
 const CAR_SETTINGS = {
-	chassisWidth: 0.7,
-	chassisHeight: 0.1,
-	chassisLength: 1.5,
+	chassisWidth: 1.4,
+	chassisHeight: 0.6,
+	chassisLength: 3,
 	mass: 20,
 };
 
@@ -14,7 +14,7 @@ const WHEEL_SETTINGS = {
 	/**
 	 * радиус колеса
 	 */
-	radius: 0.3,
+	radius: 0.6,
 	/**
 	 * высота прикрепления колес
 	 */
@@ -22,11 +22,11 @@ const WHEEL_SETTINGS = {
 	/**
 	 * жесткость подвески
 	 */
-	suspensionStiffness: 40,
+	suspensionStiffness: 30,
 	/**
 	 * на какое расстояние может двигаться подвеска
 	 */
-	suspensionRestLength: 0.4,
+	suspensionRestLength: 0.8,
 	/**
 	 * отвечает за проскальзывание колес чем ниже тем более скользко
 	 */
@@ -34,11 +34,11 @@ const WHEEL_SETTINGS = {
 	/**
 	 * сила отскока от поверхности
 	 */
-	dampingRelaxation: 2,
+	dampingRelaxation: 3,
 	/**
 	 * сила отскока от поверхности
 	 */
-	dampingCompression: 2,
+	dampingCompression: 3,
 	/**
 	 * сила подвески
 	 */
@@ -46,7 +46,7 @@ const WHEEL_SETTINGS = {
 	/**
 	 * боковая качка от поворота
 	 */
-	rollInfluence: 0.37,
+	rollInfluence: 0.35,
 	/**
 	 * расположение колес относительно мира
 	 */
@@ -55,7 +55,7 @@ const WHEEL_SETTINGS = {
 	/**
 	 * максимальный ход подвески вниз\вверх
 	 */
-	maxSuspensionTravel: 0.3,
+	maxSuspensionTravel: 0.6,
 	/**
 	 * хз
 	 */
@@ -82,32 +82,47 @@ export const carPhysicEmulator = (
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
 	);
 
-	const roofShape = new CANNON.Cylinder(0, CAR_SETTINGS.chassisWidth - 0.1, CAR_SETTINGS.chassisHeight * 4, 4);
-	const bottomShape = new CANNON.Box(
-		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth / 4)
-	);
+	const roofShape = new CANNON.Cylinder(0, CAR_SETTINGS.chassisWidth - 0.1, CAR_SETTINGS.chassisHeight * 1.5, 4);
 
 	const chassisBody = new CANNON.Body({ mass: CAR_SETTINGS.mass, material: carPhysicsMaterial });
-	chassisBody.position.set(0, 1, 0);
-	chassisBody.addShape(chassisShape);
-	chassisBody.addShape(roofShape, new CANNON.Vec3(0.7, CAR_SETTINGS.chassisHeight * 3, 0));
-	chassisBody.addShape(roofShape, new CANNON.Vec3(-0.7, CAR_SETTINGS.chassisHeight * 3, 0));
-	chassisBody.addShape(bottomShape, new CANNON.Vec3(0, -CAR_SETTINGS.chassisHeight * 2, 0));
+	chassisBody.position.set(0, 3, 0);
+	chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0.05, 0));
+	chassisBody.addShape(roofShape, new CANNON.Vec3(CAR_SETTINGS.chassisLength / 2, CAR_SETTINGS.chassisHeight * 1.5, 0));
+	chassisBody.addShape(
+		roofShape,
+		new CANNON.Vec3(-CAR_SETTINGS.chassisLength / 2, CAR_SETTINGS.chassisHeight * 1.5, 0)
+	);
 
 	const vehicle = new CANNON.RaycastVehicle({
 		chassisBody,
 	});
 
-	WHEEL_SETTINGS.chassisConnectionPointLocal.set(-1, 0, CAR_SETTINGS.chassisWidth);
+	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
+		-((CAR_SETTINGS.chassisLength * 65) / 100),
+		0,
+		CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3
+	);
 	vehicle.addWheel(WHEEL_SETTINGS);
 
-	WHEEL_SETTINGS.chassisConnectionPointLocal.set(-1, 0, changeNumberSign(CAR_SETTINGS.chassisWidth));
+	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
+		-((CAR_SETTINGS.chassisLength * 65) / 100),
+		0,
+		changeNumberSign(CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3)
+	);
 	vehicle.addWheel(WHEEL_SETTINGS);
 
-	WHEEL_SETTINGS.chassisConnectionPointLocal.set(1, 0, CAR_SETTINGS.chassisWidth);
+	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
+		(CAR_SETTINGS.chassisLength * 65) / 100,
+		0,
+		CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3
+	);
 	vehicle.addWheel(WHEEL_SETTINGS);
 
-	WHEEL_SETTINGS.chassisConnectionPointLocal.set(1, 0, changeNumberSign(CAR_SETTINGS.chassisWidth));
+	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
+		(CAR_SETTINGS.chassisLength * 65) / 100,
+		0,
+		changeNumberSign(CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3)
+	);
 	vehicle.addWheel(WHEEL_SETTINGS);
 
 	vehicle.addToWorld(physicWorld);

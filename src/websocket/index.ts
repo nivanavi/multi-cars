@@ -4,15 +4,16 @@ import { CarMoveSpecs, eventBusSubscriptions } from '../eventBus';
 type WebsocketMessages =
 	| {
 			action: 'CAR_MOVE';
-			payload: Omit<CarMoveSpecs, 'isNotMove'>;
+			payload: Omit<CarMoveSpecs, 'isNotMove' | 'id'> & { carId: string; roomId: string };
 	  }
-	| { action: 'CAR_DELETE'; payload: { id: string } }
-	| { action: 'CAR_CONNECTED'; payload: { id: string } };
+	| { action: 'CAR_DELETE'; payload: { carId: string; roomId: string } }
+	| { action: 'CAR_CONNECTED'; payload: { carId: string; roomId: string } };
 
 const WS_URL = process.env.REACT_APP_WS_URL || '';
 
 export const setupWebsocket = (
 	rootCarId: string,
+	roomId: string,
 	onDelete: (id: string) => void,
 	onUpdate: (data: Omit<CarMoveSpecs, 'isNotMove'>) => void
 ): void => {
@@ -25,7 +26,7 @@ export const setupWebsocket = (
 	websocket.onopen = (): void => {
 		sendMessages({
 			action: 'CAR_CONNECTED',
-			payload: { id: rootCarId },
+			payload: { carId: rootCarId, roomId },
 		});
 	};
 
@@ -40,7 +41,8 @@ export const setupWebsocket = (
 					steering,
 					accelerating,
 					brake,
-					id,
+					carId: id,
+					roomId,
 				},
 			});
 		},
@@ -51,15 +53,18 @@ export const setupWebsocket = (
 		const data: WebsocketMessages = JSON.parse(message.data);
 		switch (data.action) {
 			case 'CAR_CONNECTED':
-				console.log(`к нам присоединилась машина с id ${data.payload.id} а наш id ${rootCarId}`);
+				console.log(`к нам присоединилась машина с id ${data.payload.carId} а наш id ${rootCarId}`);
 				break;
 			case 'CAR_DELETE':
-				console.log(`от нас отсоединилась машина с id ${data.payload.id} а наш id ${rootCarId}`);
-				onDelete(data.payload.id);
+				console.log(`от нас отсоединилась машина с id ${data.payload.carId} а наш id ${rootCarId}`);
+				onDelete(data.payload.carId);
 				break;
 			case 'CAR_MOVE':
-				console.log(`движется машина с id ${data.payload.id} а наш id ${rootCarId}`);
-				onUpdate(data.payload);
+				// console.log(`движется машина с id ${data.payload.carId} а наш id ${rootCarId}`);
+				onUpdate({
+					...data.payload,
+					id: data.payload.carId,
+				});
 				break;
 			default:
 				break;

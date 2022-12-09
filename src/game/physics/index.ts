@@ -24,12 +24,12 @@ export const carPhysicsMaterial = new CANNON.Material('carMaterial');
 const groundCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, groundPhysicsMaterial, {
 	friction: 0.01,
 	restitution: 0,
-	contactEquationStiffness: 1000,
+	contactEquationStiffness: 10000,
 });
 
 const carCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, carPhysicsMaterial, {
-	friction: 0.01,
-	restitution: 0,
+	friction: 0,
+	restitution: 0.3,
 	contactEquationStiffness: 1000,
 });
 

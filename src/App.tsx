@@ -13,6 +13,7 @@ import CannonDebugRenderer from './libs/cannonDebug';
 import { carPhysicEmulator } from './game/carPhysicsEmulator';
 import { setupWebsocket } from './websocket';
 
+const ROOM_ID = 'test_room';
 const ROOT_CAR_ID = v4();
 window.addEventListener('resize', () => {
 	eventBusTriggers.triggerOnResize({
@@ -52,7 +53,7 @@ const updateCarHandler = (data: Omit<CarMoveSpecs, 'isNotMove'>): void => {
 	});
 };
 
-setupWebsocket(ROOT_CAR_ID, deleteCarHandler, updateCarHandler);
+setupWebsocket(ROOT_CAR_ID, ROOM_ID, deleteCarHandler, updateCarHandler);
 
 // debug
 const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
@@ -72,8 +73,6 @@ const groundBody = new CANNON.Body({
 
 groundBody.addShape(groundShape);
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(-1, 0, 0), Math.PI * 0.5);
-
-physicWorld.addBody(groundBody);
 
 // Add the ground
 const sizeX = 64;
@@ -96,11 +95,10 @@ for (let i = 0; i < sizeX; i++) {
 	}
 }
 
-const groundMaterial = new CANNON.Material('ground');
 const heightfieldShape = new CANNON.Heightfield(matrix, {
 	elementSize: 100 / sizeX,
 });
-const heightfieldBody = new CANNON.Body({ mass: 0, material: groundMaterial });
+const heightfieldBody = new CANNON.Body({ mass: 0, material: groundPhysicsMaterial });
 heightfieldBody.addShape(heightfieldShape);
 heightfieldBody.position.set(
 	// -((sizeX - 1) * heightfieldShape.elementSize) / 2,
@@ -111,6 +109,7 @@ heightfieldBody.position.set(
 );
 heightfieldBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 // physicWorld.addBody(heightfieldBody);
+physicWorld.addBody(groundBody);
 
 // это не должно тут быть
 

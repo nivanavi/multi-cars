@@ -14,11 +14,11 @@ const CAR_SETTINGS = {
 	/**
 	 * максимальная скорость
 	 */
-	maxSpeed: 0.2,
+	maxSpeed: 0.25,
 	/**
 	 * максимальная скорость при бусте
 	 */
-	boostMaxSpeed: 0.3,
+	boostMaxSpeed: 0.4,
 	/**
 	 * текущая скорость
 	 */
@@ -30,11 +30,11 @@ const CAR_SETTINGS = {
 	/**
 	 * мощность ускорения при бернауте (что то типа лошидиных сил)
 	 */
-	acceleratingSpeedBurnOut: 200,
+	acceleratingSpeedBurnOut: 245,
 	/**
 	 * сила торможения
 	 */
-	brakeForce: 0.9,
+	brakeForce: 1,
 	/**
 	 * предыдущая позиция автомобиля
 	 */
@@ -109,7 +109,7 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 
 	const checkCornerCaseAccelerating = (): void => {
 		const currentMaxSpeed: number = CAR_SETTINGS.boost ? CAR_SETTINGS.boostMaxSpeed : CAR_SETTINGS.maxSpeed;
-
+		console.log(CAR_SETTINGS.speed);
 		// проверяем не превысили ли максимально возможную скорость (если превысили убираем ускорение) но убираем только если идет попытка ускорится в направлении превышения скорости
 		if (CURRENT_SPECS.accelerating < 0 && CAR_SETTINGS.isGoForward && CAR_SETTINGS.speed > currentMaxSpeed)
 			CURRENT_SPECS.accelerating = 0;
@@ -198,8 +198,11 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 	});
 
 	// todo нормально реализовать то когда машина не двигается
-	// todo сверстать интерф
-	// todo написать сервер так что бы он не слал события движения машинки типа их же отправителю
+	// todo интерфейс создания ника
+	// todo интерфейс создания комнаты
+	// todo иетерфейс выбора комнаты для подключения
+	// todo нотификация подключения и отключения
+	// todo ники игроков над машинкой
 	const keyPressHandler: (ev: KeyboardEvent, isPressed: boolean) => void = (ev, isPressed) => {
 		if (ev.repeat) return;
 		switch (ev.code) {
