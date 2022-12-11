@@ -12,6 +12,14 @@ import { setupCar } from './game/car';
 import CannonDebugRenderer from './libs/cannonDebug';
 import { carPhysicEmulator } from './game/carPhysicsEmulator';
 import { setupWebsocket } from './websocket';
+import { createModelContainer } from './game/modelLoader';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import eleanorModelSrc from './models/eleanor/eleanor.gltf';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import wheelModelSrc from './models/eleanor/wheel.gltf';
+import { cannonToThreeQuaternion, cannonToThreeVec } from './libs/utils';
 
 const ROOM_ID = 'test_room';
 const ROOT_CAR_ID = v4();
@@ -46,7 +54,8 @@ const deleteCarHandler = (id: string): void => {
 	CARS_ON_MAP.delete(id);
 };
 const updateCarHandler = (data: Omit<CarMoveSpecs, 'isNotMove'>): void => {
-	if (!CARS_ON_MAP.get(data.id)) CARS_ON_MAP.set(data.id, carPhysicEmulator(physicWorld, data.id, true));
+	if (!CARS_ON_MAP.get(data.id))
+		CARS_ON_MAP.set(data.id, carPhysicEmulator({ physicWorld, id: data.id, isNotTriggerEvent: true }));
 	CARS_ON_MAP.get(data.id)?.updateSpecs({
 		...data,
 		isNotMove: false,
@@ -54,6 +63,49 @@ const updateCarHandler = (data: Omit<CarMoveSpecs, 'isNotMove'>): void => {
 };
 
 setupWebsocket(ROOT_CAR_ID, ROOM_ID, deleteCarHandler, updateCarHandler);
+
+// models
+const eleanorContainer = createModelContainer({
+	name: 'eleanor',
+	modelSrc: eleanorModelSrc,
+	rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+	scale: new THREE.Vector3(2.8, 2.8, 2.8),
+	position: new THREE.Vector3(-0.07, 0.2, 0),
+});
+scene.add(eleanorContainer);
+
+const wheelsGraphic: THREE.Group[] = [];
+createModelContainer({
+	name: 'wheel',
+	modelSrc: wheelModelSrc,
+	rotation: new THREE.Euler(0, Math.PI / 2, 0),
+	callback: container => {
+		Array.from({ length: 4 }).forEach(() => {
+			const wheelMesh = container.clone();
+			wheelMesh.scale.set(1, 1, 0.95);
+			wheelsGraphic.push(wheelMesh);
+			scene.add(wheelMesh);
+		});
+	},
+	scale: new THREE.Vector3(0.57, 0.57, 0.57),
+});
+
+eventBusSubscriptions.subscribeOnCarMove({
+	callback: ({ payload: { chassis, wheels } }) => {
+		const { position, quaternion } = chassis || {};
+		if (!position || !quaternion) return;
+		eleanorContainer.position.copy(cannonToThreeVec(position));
+		eleanorContainer.quaternion.copy(cannonToThreeQuaternion(quaternion));
+		if (!wheels || !wheelsGraphic.length) return;
+		wheels.forEach((wheel, index) => {
+			const { position: wheelPosition, quaternion: wheelQuaternion } = wheel || {};
+			if (!position || !quaternion) return;
+			wheelsGraphic[index].position.copy(cannonToThreeVec(wheelPosition));
+			wheelsGraphic[index].quaternion.copy(cannonToThreeQuaternion(wheelQuaternion));
+		});
+	},
+});
+// models
 
 // debug
 const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
@@ -65,6 +117,13 @@ eventBusSubscriptions.subscribeOnTick({
 });
 
 // это не должно тут быть
+const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+const groundMaterial = new THREE.MeshStandardMaterial({ color: 'grey' });
+const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+groundMesh.receiveShadow = true;
+groundMesh.rotation.set(-Math.PI / 2, 0, 0);
+scene.add(groundMesh);
+
 const groundShape = new CANNON.Plane();
 const groundBody = new CANNON.Body({
 	mass: 0,

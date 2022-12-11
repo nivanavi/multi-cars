@@ -3,6 +3,21 @@ import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../eve
 import { changeNumberSign } from '../../libs/utils';
 import { carPhysicsMaterial } from '../physics';
 
+type CarPhysicsEmulatorCmd = {
+	/**
+	 * физический "мир"
+	 */
+	physicWorld: CANNON.World;
+	/**
+	 * id машины
+	 */
+	id: string;
+	/**
+	 * машина не будет тригерить событие движения
+	 */
+	isNotTriggerEvent?: boolean;
+};
+
 const CAR_SETTINGS = {
 	chassisWidth: 1.4,
 	chassisHeight: 0.6,
@@ -26,7 +41,7 @@ const WHEEL_SETTINGS = {
 	/**
 	 * на какое расстояние может двигаться подвеска
 	 */
-	suspensionRestLength: 0.8,
+	suspensionRestLength: 0.7,
 	/**
 	 * отвечает за проскальзывание колес чем ниже тем более скользко
 	 */
@@ -46,7 +61,7 @@ const WHEEL_SETTINGS = {
 	/**
 	 * боковая качка от поворота
 	 */
-	rollInfluence: 0.35,
+	rollInfluence: 0.37,
 	/**
 	 * расположение колес относительно мира
 	 */
@@ -68,14 +83,13 @@ const WHEEL_SETTINGS = {
 };
 
 export const carPhysicEmulator = (
-	physicWorld: CANNON.World,
-	id: string,
-	isNotTriggerEvent?: boolean
+	props: CarPhysicsEmulatorCmd
 ): {
 	delete: () => void;
 	chassis: CANNON.Body;
 	updateSpecs: (specs: CarMoveSpecs) => void;
 } => {
+	const { id, physicWorld, isNotTriggerEvent } = props;
 	let CAR_SPECS: CarMoveSpecs | null = null;
 
 	const chassisShape = new CANNON.Box(
@@ -87,25 +101,21 @@ export const carPhysicEmulator = (
 	const chassisBody = new CANNON.Body({ mass: CAR_SETTINGS.mass, material: carPhysicsMaterial });
 	chassisBody.position.set(0, 3, 0);
 	chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0.05, 0));
-	chassisBody.addShape(roofShape, new CANNON.Vec3(CAR_SETTINGS.chassisLength / 2, CAR_SETTINGS.chassisHeight * 1.5, 0));
-	chassisBody.addShape(
-		roofShape,
-		new CANNON.Vec3(-CAR_SETTINGS.chassisLength / 2, CAR_SETTINGS.chassisHeight * 1.5, 0)
-	);
+	chassisBody.addShape(roofShape, new CANNON.Vec3(CAR_SETTINGS.chassisLength / 4, CAR_SETTINGS.chassisHeight + 0.3, 0));
 
 	const vehicle = new CANNON.RaycastVehicle({
 		chassisBody,
 	});
 
 	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
-		-((CAR_SETTINGS.chassisLength * 65) / 100),
+		-((CAR_SETTINGS.chassisLength * 60) / 100),
 		0,
 		CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3
 	);
 	vehicle.addWheel(WHEEL_SETTINGS);
 
 	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
-		-((CAR_SETTINGS.chassisLength * 65) / 100),
+		-((CAR_SETTINGS.chassisLength * 60) / 100),
 		0,
 		changeNumberSign(CAR_SETTINGS.chassisWidth - WHEEL_SETTINGS.radius / 3)
 	);

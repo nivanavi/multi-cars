@@ -30,7 +30,7 @@ const CAR_SETTINGS = {
 	/**
 	 * мощность ускорения при бернауте (что то типа лошидиных сил)
 	 */
-	acceleratingSpeedBurnOut: 245,
+	acceleratingSpeedBurnOut: 270,
 	/**
 	 * сила торможения
 	 */
@@ -72,7 +72,7 @@ const CAR_SETTINGS = {
 };
 
 export const setupCar = (physicWorld: CANNON.World, id: string): void => {
-	const { chassis, updateSpecs } = carPhysicEmulator(physicWorld, id);
+	const { chassis, updateSpecs } = carPhysicEmulator({ physicWorld, id });
 	const CURRENT_SPECS: CarMoveSpecs = {
 		accelerating: 0,
 		brake: 0,
@@ -109,7 +109,6 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 
 	const checkCornerCaseAccelerating = (): void => {
 		const currentMaxSpeed: number = CAR_SETTINGS.boost ? CAR_SETTINGS.boostMaxSpeed : CAR_SETTINGS.maxSpeed;
-		console.log(CAR_SETTINGS.speed);
 		// проверяем не превысили ли максимально возможную скорость (если превысили убираем ускорение) но убираем только если идет попытка ускорится в направлении превышения скорости
 		if (CURRENT_SPECS.accelerating < 0 && CAR_SETTINGS.isGoForward && CAR_SETTINGS.speed > currentMaxSpeed)
 			CURRENT_SPECS.accelerating = 0;
@@ -200,9 +199,13 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 	// todo нормально реализовать то когда машина не двигается
 	// todo интерфейс создания ника
 	// todo интерфейс создания комнаты
-	// todo иетерфейс выбора комнаты для подключения
+	// todo интерфейс выбора комнаты для подключения
 	// todo нотификация подключения и отключения
 	// todo ники игроков над машинкой
+	// todo карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями
+	// todo моделька машины
+	// todo моделька колес
+	// todo  смена дня и ночи
 	const keyPressHandler: (ev: KeyboardEvent, isPressed: boolean) => void = (ev, isPressed) => {
 		if (ev.repeat) return;
 		switch (ev.code) {

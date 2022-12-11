@@ -36,3 +36,14 @@ export const isJsonString = (str: string | undefined): boolean => {
 	}
 	return true;
 };
+
+/**
+ * Переводит вектор Cannon в вектор Three
+ */
+export const cannonToThreeVec = (vector: CANNON.Vec3): THREE.Vector3 => new THREE.Vector3(vector.x, vector.y, vector.z);
+
+/**
+ * Переводит Quaternion Cannon в Quaternion Three
+ */
+export const cannonToThreeQuaternion = (quaternion: CANNON.Quaternion): THREE.Quaternion =>
+	new THREE.Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
