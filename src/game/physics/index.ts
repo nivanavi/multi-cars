@@ -3,6 +3,7 @@ import { eventBusSubscriptions } from '../../eventBus';
 
 export const groundPhysicsMaterial = new CANNON.Material('groundMaterial');
 export const carPhysicsMaterial = new CANNON.Material('carMaterial');
+export const rumpPhysicsMaterial = new CANNON.Material('rumpMaterial');
 // export const defaultPhysicsMaterial = new CANNON.Material('dummyMaterial');
 // export const wheelPhysicsMaterial = new CANNON.Material('wheelMaterial');
 
@@ -33,6 +34,12 @@ const carCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, car
 	contactEquationStiffness: 1000,
 });
 
+const carRumpContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, rumpPhysicsMaterial, {
+	friction: 0,
+	restitution: 0.3,
+	contactEquationStiffness: 1000,
+});
+
 export const setupPhysics = (): {
 	physicWorld: CANNON.World;
 } => {
@@ -48,9 +55,9 @@ export const setupPhysics = (): {
 	// physicWorld.broadphase = new CANNON.SAPBroadphase(physicWorld);
 
 	// добавление взаимодействия 2ух материалов
-	// physicWorld.addContactMaterial(groundWheelContactMaterial);
 	physicWorld.addContactMaterial(groundCarContactMaterial);
 	physicWorld.addContactMaterial(carCarContactMaterial);
+	physicWorld.addContactMaterial(carRumpContactMaterial);
 
 	eventBusSubscriptions.subscribeOnTick({
 		callback: () => {

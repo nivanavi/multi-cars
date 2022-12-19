@@ -96,12 +96,15 @@ export const carPhysicEmulator = (
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
 	);
 
-	const roofShape = new CANNON.Cylinder(0, CAR_SETTINGS.chassisWidth - 0.1, CAR_SETTINGS.chassisHeight * 1.5, 4);
+	const roofShape = new CANNON.Sphere(CAR_SETTINGS.chassisHeight);
 
 	const chassisBody = new CANNON.Body({ mass: CAR_SETTINGS.mass, material: carPhysicsMaterial });
-	chassisBody.position.set(0, 3, 0);
+	chassisBody.position.set(0, 5, 0);
 	chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0.05, 0));
-	chassisBody.addShape(roofShape, new CANNON.Vec3(CAR_SETTINGS.chassisLength / 4, CAR_SETTINGS.chassisHeight + 0.3, 0));
+	chassisBody.addShape(
+		roofShape,
+		new CANNON.Vec3(CAR_SETTINGS.chassisLength / 4, CAR_SETTINGS.chassisHeight + 0.15, 0)
+	);
 
 	const vehicle = new CANNON.RaycastVehicle({
 		chassisBody,
