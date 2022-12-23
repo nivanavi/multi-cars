@@ -47,3 +47,14 @@ export const cannonToThreeVec = (vector: CANNON.Vec3): THREE.Vector3 => new THRE
  */
 export const cannonToThreeQuaternion = (quaternion: CANNON.Quaternion): THREE.Quaternion =>
 	new THREE.Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+
+const decToHex = (value: number): string => {
+	if (value > 255) return 'FF';
+	if (value < 0) return '00';
+	return value.toString(16).padStart(2, '0').toUpperCase();
+};
+
+/**
+ * Переводит rgb в hex т.к three че то с этим не справляется принимает только целые числа
+ */
+export const rgbToHex = (r: number, g: number, b: number): string => `#${decToHex(r)}${decToHex(g)}${decToHex(b)}`;

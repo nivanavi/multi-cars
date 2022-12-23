@@ -10,7 +10,7 @@ export const setupRenderer = (
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-	renderer.setClearColor('#262837');
+	renderer.setClearColor('#000');
 
 	eventBusSubscriptions.subscribeOnResizeWithInit({
 		callback: ({ payload: { height, width } }) => {

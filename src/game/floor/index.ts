@@ -9,7 +9,9 @@ import mapModelSrc from '../../models/map/map.gltf';
 import { groundPhysicsMaterial, rumpPhysicsMaterial } from '../physics';
 import { createModelContainer } from '../modelLoader';
 
-const MAP_PHYSICS_OBJECT_NAME = 'physic';
+const MAP_PHYSICS_OBJECT_NAME = 'physics';
+const MAP_ROAD_OBJECT_NAME = 'road';
+const NO_CAST_OBJECT_NAME = 'noCast';
 
 export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void => {
 	const groundShape = new CANNON.Plane();
@@ -26,22 +28,33 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 	createModelContainer({
 		name: 'map',
 		modelSrc: mapModelSrc,
+		receiveShadow: true,
+		castShadow: true,
+		scale: new THREE.Vector3(1, 1, 1),
 		callback: mapContainer => {
-			const physicsObjects = mapContainer.children[0].children.filter(({ name }) =>
-				name.startsWith(MAP_PHYSICS_OBJECT_NAME)
-			);
-			physicsObjects.forEach(object => {
-				const { shape } = threeToCannon(object, { type: ShapeType.BOX }) || {};
-				const objectBody = new CANNON.Body({
-					material: rumpPhysicsMaterial,
-					mass: 0,
-				});
-				if (!shape) return;
-				objectBody.addShape(shape);
-				objectBody.position.set(object.position.x, object.position.y, object.position.z);
-				objectBody.quaternion.set(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w);
-				physicWorld.addBody(objectBody);
+			mapContainer.children[0].children.forEach(object => {
+				const { name } = object;
+				if (name.startsWith(NO_CAST_OBJECT_NAME)) {
+					object.castShadow = false;
+					object.children.forEach(nestObject => {
+						nestObject.castShadow = false;
+					});
+				}
+				if (name.startsWith(MAP_PHYSICS_OBJECT_NAME) || name.startsWith(MAP_ROAD_OBJECT_NAME)) {
+					const { shape } = threeToCannon(object, { type: ShapeType.BOX }) || {};
+					const objectBody = new CANNON.Body({
+						material: name.startsWith(MAP_ROAD_OBJECT_NAME) ? groundPhysicsMaterial : rumpPhysicsMaterial,
+						mass: 0,
+					});
+					if (!((object as THREE.Mesh).material as THREE.Material).name) (object as THREE.Mesh).visible = false;
+					if (!shape) return;
+					objectBody.addShape(shape);
+					objectBody.position.set(object.position.x, object.position.y, object.position.z);
+					objectBody.quaternion.set(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w);
+					physicWorld.addBody(objectBody);
+				}
 			});
+			console.log(mapContainer);
 			scene.add(mapContainer);
 		},
 	});

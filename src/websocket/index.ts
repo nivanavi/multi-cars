@@ -1,22 +1,27 @@
 import { isJsonString } from '../libs/utils';
-import { CarMoveSpecs, eventBusSubscriptions } from '../eventBus';
+import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions } from '../eventBus';
 
 type WebsocketMessages =
 	| {
 			action: 'CAR_MOVE';
-			payload: Omit<CarMoveSpecs, 'isNotMove' | 'id'> & { carId: string; roomId: string };
+			payload: CarMoveSpecs & { carId: string; roomId: string };
 	  }
 	| { action: 'CAR_DELETE'; payload: { carId: string; roomId: string } }
-	| { action: 'CAR_CONNECTED'; payload: { carId: string; roomId: string } };
+	| { action: 'CAR_CONNECTED'; payload: { carId: string; roomId: string } }
+	| { action: 'BALL_MOVE'; payload: BallMoveSpecs & { carId: string; roomId: string } };
 
 const WS_URL = process.env.REACT_APP_WS_URL || '';
 
-export const setupWebsocket = (
-	rootCarId: string,
-	roomId: string,
-	onDelete: (id: string) => void,
-	onUpdate: (data: Omit<CarMoveSpecs, 'isNotMove'>) => void
-): void => {
+type WebsocketProps = {
+	rootCarId: string;
+	roomId: string;
+	onCarDelete: (id: string) => void;
+	onCarUpdate: (data: { id: string } & CarMoveSpecs) => void;
+	onBallMove: (data: BallMoveSpecs) => void;
+};
+
+export const setupWebsocket = (props: WebsocketProps): void => {
+	const { rootCarId, roomId, onCarDelete, onCarUpdate, onBallMove } = props;
 	const websocket = new WebSocket(WS_URL);
 
 	const sendMessages = (message: WebsocketMessages): void => {
@@ -37,11 +42,27 @@ export const setupWebsocket = (
 			sendMessages({
 				action: 'CAR_MOVE',
 				payload: {
+					isNotMove,
 					chassis,
 					steering,
 					accelerating,
 					brake,
 					carId: id,
+					roomId,
+				},
+			});
+		},
+	});
+
+	eventBusSubscriptions.subscribeOnBallMove({
+		callback: ({ payload: { position, quaternion } }) => {
+			if (websocket.readyState !== 1) return;
+			sendMessages({
+				action: 'BALL_MOVE',
+				payload: {
+					position,
+					quaternion,
+					carId: rootCarId,
 					roomId,
 				},
 			});
@@ -57,14 +78,18 @@ export const setupWebsocket = (
 				break;
 			case 'CAR_DELETE':
 				console.log(`от нас отсоединилась машина с id ${data.payload.carId} а наш id ${rootCarId}`);
-				onDelete(data.payload.carId);
+				onCarDelete(data.payload.carId);
 				break;
 			case 'CAR_MOVE':
 				// console.log(`движется машина с id ${data.payload.carId} а наш id ${rootCarId}`);
-				onUpdate({
+				onCarUpdate({
 					...data.payload,
 					id: data.payload.carId,
 				});
+				break;
+			case 'BALL_MOVE':
+				if (data.payload.carId === rootCarId) return;
+				onBallMove(data.payload);
 				break;
 			default:
 				break;

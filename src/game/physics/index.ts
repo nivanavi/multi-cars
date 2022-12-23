@@ -30,13 +30,13 @@ const groundCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, 
 
 const carCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, carPhysicsMaterial, {
 	friction: 0,
-	restitution: 0.3,
+	restitution: 5,
 	contactEquationStiffness: 1000,
 });
 
 const carRumpContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, rumpPhysicsMaterial, {
 	friction: 0,
-	restitution: 0.3,
+	restitution: 5,
 	contactEquationStiffness: 1000,
 });
 

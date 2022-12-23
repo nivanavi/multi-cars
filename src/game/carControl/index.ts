@@ -1,6 +1,5 @@
 import * as CANNON from 'cannon-es';
 import { CarMoveSpecs, eventBusSubscriptions } from '../../eventBus';
-import { carPhysicEmulator } from '../carPhysicsEmulator';
 
 const CAR_SETTINGS = {
 	/**
@@ -71,14 +70,15 @@ const CAR_SETTINGS = {
 	boost: false,
 };
 
-export const setupCar = (physicWorld: CANNON.World, id: string): void => {
-	const { chassis, updateSpecs } = carPhysicEmulator({ physicWorld, id });
+/**
+ * функция осуществляющая рассчет характеристик машины исходя их действий пользователя
+ */
+export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMoveSpecs) => void): void => {
 	const CURRENT_SPECS: CarMoveSpecs = {
 		accelerating: 0,
 		brake: 0,
 		steering: 0,
 		isNotMove: false,
-		id,
 	};
 
 	const checkCornerCaseSteering = (): void => {
@@ -159,8 +159,12 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 			return;
 		}
 
-		// если нажат ручник
-		if (CAR_SETTINGS.brake) {
+		// если нажат ручник или если едем вперед и нажали "назад" воспринимаем это как тормоз (так же и для вперед)
+		if (
+			CAR_SETTINGS.brake ||
+			(CAR_SETTINGS.isGoForward && CAR_SETTINGS.down) ||
+			(!CAR_SETTINGS.isGoForward && CAR_SETTINGS.up)
+		) {
 			CURRENT_SPECS.brake = CAR_SETTINGS.brakeForce;
 		} else {
 			// убираем торможение т.к не прошло ни одно из событий выше где оно нужно
@@ -207,21 +211,22 @@ export const setupCar = (physicWorld: CANNON.World, id: string): void => {
 	// todo интерфейс отправки ссылки другу
 	// todo нотификация подключения и отключения
 	// todo ники игроков над машинкой
-	// todo карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями
 	// todo моделька машины | done
 	// todo моделька колес | done
-	// todo смена дня и ночи
 	// todo respawn
 	// todo написать сервер так что бы он не слал события движения машинки типа их же отправителю | done
+	// todo поправить трение машины об физические объекты мапы (а то просто скользит) | done
+	// todo подумать как сделать торможение на s до момента остановки а потом уже как движение назад | done
+	// todo синхоронизированный мяч для катания с режимом сна и не большим количеством граней
+	// todo графика и удаление ее для каждой машины | done
 
-	/**
-	 * мапа
-	 * звезды на небе
-	 * смена дня и ночи
-	 * вода между двух камней
-	 * парковка как в гта типа в несколько этажей и наверху трамплин
+	/** мапа
+	 * звезды на небе | done
+	 * смена дня и ночи | done
+	 * тени в зависимости от положения солнца
+	 * карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями | done
 	 *
-	 * возможно мы на острове круглом а если упасть  вниз там просто бесконечный пол с текстурой (ты ебанат)
+	 * пасхалки ?
 	 *
 	 */
 	const keyPressHandler: (ev: KeyboardEvent, isPressed: boolean) => void = (ev, isPressed) => {

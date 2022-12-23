@@ -6,6 +6,8 @@ type CreateModelCmd = {
 	position?: THREE.Vector3;
 	scale?: THREE.Vector3;
 	rotation?: THREE.Euler;
+	receiveShadow?: boolean;
+	castShadow?: boolean;
 	modelSrc: string;
 	callback?: (container: THREE.Group, modelScene: THREE.Group) => void;
 };
@@ -20,6 +22,8 @@ export const createModelContainer: (props: CreateModelCmd) => THREE.Group = prop
 		name,
 		modelSrc,
 		callback,
+		receiveShadow = false,
+		castShadow = false,
 	} = props;
 	const container: THREE.Group = new THREE.Group();
 	container.name = name;
@@ -27,9 +31,11 @@ export const createModelContainer: (props: CreateModelCmd) => THREE.Group = prop
 	gltfLoader.load(modelSrc, model => {
 		const modelScene = model.scene;
 		modelScene.children.forEach(child => {
-			child.castShadow = true;
+			child.castShadow = castShadow;
+			child.receiveShadow = receiveShadow;
 			child.children.forEach(nestChild => {
-				nestChild.castShadow = true;
+				nestChild.castShadow = castShadow;
+				nestChild.receiveShadow = receiveShadow;
 			});
 		});
 		modelScene.rotation.copy(rotation);

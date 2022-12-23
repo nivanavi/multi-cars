@@ -6,7 +6,7 @@ const CAMERA_OPTIONS = {
 	maxRotateY: Math.PI / 2,
 	maxZoom: 20,
 	minZoom: 5,
-	moveSenseDivider: 100,
+	moveSenseDivider: 300,
 	rotateX: 0,
 	rotateY: 0,
 	lookAtPosition: new THREE.Vector3(0, 0, 0),
@@ -29,9 +29,10 @@ export const setupCamera = (scene: THREE.Scene, watchCarId: string): { camera: T
 	const cameraContainer = new THREE.Group();
 	cameraContainer.position.set(0, 0.1, 0);
 
-	const cameraMaterial = new THREE.MeshBasicMaterial({ color: 'blue' });
+	const cameraMaterial = new THREE.MeshBasicMaterial();
 	const cameraGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 	const cameraMesh = new THREE.Mesh(cameraGeometry, cameraMaterial);
+	cameraMesh.visible = false;
 	cameraMesh.position.set(0, 0, CAMERA_OPTIONS.minZoom);
 
 	cameraContainer.add(cameraMesh);

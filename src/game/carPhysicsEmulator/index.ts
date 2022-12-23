@@ -1,9 +1,15 @@
 import * as CANNON from 'cannon-es';
+import * as THREE from 'three';
 import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
 import { carPhysicsMaterial } from '../physics';
+import { setupCarGraphics } from '../carGraphics';
 
 type CarPhysicsEmulatorCmd = {
+	/**
+	 * сцена
+	 */
+	scene: THREE.Scene;
 	/**
 	 * физический "мир"
 	 */
@@ -89,8 +95,10 @@ export const carPhysicEmulator = (
 	chassis: CANNON.Body;
 	updateSpecs: (specs: CarMoveSpecs) => void;
 } => {
-	const { id, physicWorld, isNotTriggerEvent } = props;
+	const { id, physicWorld, isNotTriggerEvent, scene } = props;
 	let CAR_SPECS: CarMoveSpecs | null = null;
+
+	const { updateHandler, deleteHandler: deleteGraphicHandler } = setupCarGraphics(scene);
 
 	const chassisShape = new CANNON.Box(
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
@@ -190,23 +198,24 @@ export const carPhysicEmulator = (
 				chassisBody.quaternion.copy(CAR_SPECS.chassis.quaternion);
 			}
 
+			const carMoveSpecs: CarMoveSpecs = {
+				steering: CAR_SPECS.steering,
+				accelerating: CAR_SPECS.accelerating,
+				brake: CAR_SPECS.brake,
+				isNotMove: CAR_SPECS.isNotMove,
+				chassis: {
+					position: chassisBody.position,
+					quaternion: chassisBody.quaternion,
+				},
+				wheels: vehicle.wheelInfos.map((_, index) => ({
+					position: wheelBodies[index].position,
+					quaternion: wheelBodies[index].quaternion,
+				})),
+			};
+			updateHandler(carMoveSpecs);
 			if (isNotTriggerEvent) return;
 			eventBusTriggers.triggerOnCarMove({
-				payload: {
-					id,
-					steering: CAR_SPECS.steering,
-					accelerating: CAR_SPECS.accelerating,
-					brake: CAR_SPECS.brake,
-					isNotMove: CAR_SPECS.isNotMove,
-					chassis: {
-						position: chassisBody.position,
-						quaternion: chassisBody.quaternion,
-					},
-					wheels: vehicle.wheelInfos.map((_, index) => ({
-						position: wheelBodies[index].position,
-						quaternion: wheelBodies[index].quaternion,
-					})),
-				},
+				payload: { id, ...carMoveSpecs },
 			});
 		},
 	});
@@ -215,6 +224,7 @@ export const carPhysicEmulator = (
 		vehicle.removeFromWorld(physicWorld);
 		physicWorld.removeBody(chassisBody);
 		wheelBodies.forEach(wheel => physicWorld.removeBody(wheel));
+		deleteGraphicHandler();
 	};
 
 	return {
