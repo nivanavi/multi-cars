@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import CSM from 'three-csm';
 import { eventBusSubscriptions } from '../../eventBus';
-import { changeNumberSign, rgbToHex } from '../../libs/utils';
+import { rgbToHex } from '../../libs/utils';
 
 const DAY_NIGHT_OPTIONS = {
 	isDay: false,
@@ -26,7 +26,6 @@ export const setupDayNight = (
 	renderer: THREE.WebGLRenderer,
 	camera: THREE.PerspectiveCamera
 ): void => {
-	// lights
 	const ambientLight = new THREE.AmbientLight('#ffffff');
 	ambientLight.intensity = DAY_NIGHT_OPTIONS.currentIntensity;
 
@@ -37,36 +36,31 @@ export const setupDayNight = (
 		cascades: 1,
 		shadowMapSize: 2048,
 		lightIntensity: 0.7,
-		lightDirection: new THREE.Vector3(-1, -1, -1).normalize(),
 		camera,
 		parent: scene,
 	});
 
 	scene.add(ambientLight);
 
-	// start
-	const starGeometry = new THREE.BufferGeometry();
-	const vertices: number[] = [];
+	// stars
+	[1, 5].forEach(size => {
+		const vertices = Array.from({ length: 700 }).reduce<number[]>(prev => {
+			const angle = Math.random() * Math.PI * 2;
+			const radius = 1500 + Math.random() * 15;
+			const x = Math.sin(angle) * radius;
+			const z = Math.cos(angle) * radius;
+			const y = Math.random() * 3000;
+			return [...prev, x, y, z];
+		}, []);
+		const starGeometry = new THREE.BufferGeometry();
+		starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-	Array.from({ length: 1500 }).forEach(() => {
-		const angle = Math.random() * Math.PI * 2;
-		const radius = 1500 + Math.random() * 15;
-		const x = Math.sin(angle) * radius;
-		const z = Math.cos(angle) * radius;
-		const y = Math.random() * 1500;
-
-		vertices.push(x, y < 0 ? changeNumberSign(y) : y, z);
-	});
-
-	starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
-	// todo create different sizes
-	[0.3, 0.5, 0.9, 1.4].forEach(size => {
 		const starMaterial = new THREE.PointsMaterial({
 			size,
 			blending: THREE.AdditiveBlending,
 			depthTest: false,
 		});
+
 		const stars = new THREE.Points(starGeometry, starMaterial);
 		scene.add(stars);
 	});

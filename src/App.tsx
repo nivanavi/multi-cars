@@ -21,6 +21,7 @@ import { setupBall } from './game/ball';
 const ROOM_ID = 'test_room';
 const ROOT_CAR_ID = v4();
 
+const IS_DEV_MODE = true;
 window.addEventListener('resize', () => {
 	eventBusTriggers.triggerOnResize({
 		payload: {
@@ -63,10 +64,7 @@ const deleteCarHandler = (id: string): void => {
 const updateCarHandler = (data: { id: string } & CarMoveSpecs): void => {
 	if (!CARS_ON_MAP.get(data.id))
 		CARS_ON_MAP.set(data.id, carPhysicEmulator({ physicWorld, id: data.id, isNotTriggerEvent: true, scene }));
-	CARS_ON_MAP.get(data.id)?.updateSpecs({
-		...data,
-		isNotMove: false,
-	});
+	CARS_ON_MAP.get(data.id)?.updateSpecs(data);
 };
 
 setupWebsocket({
@@ -83,14 +81,15 @@ const stats = new Stats();
 stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
 document.body.appendChild(stats.dom);
 
-eventBusSubscriptions.subscribeOnTick({
-	callback: () => {
-		CANNON_DEBUG_RENDERER.update();
-		stats.begin();
+if (IS_DEV_MODE)
+	eventBusSubscriptions.subscribeOnTick({
+		callback: () => {
+			CANNON_DEBUG_RENDERER.update();
+			stats.begin();
 
-		stats.end();
-	},
-});
+			stats.end();
+		},
+	});
 
 export const MultiCar: React.FC = () => {
 	const canvas = useSceneIgniterContext().canvas!;

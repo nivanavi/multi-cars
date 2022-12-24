@@ -109,6 +109,7 @@ export const carPhysicEmulator = (
 	const chassisBody = new CANNON.Body({ mass: CAR_SETTINGS.mass, material: carPhysicsMaterial });
 	chassisBody.position.set(0, 5, 0);
 	chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0.05, 0));
+	chassisBody.allowSleep = true;
 	chassisBody.addShape(
 		roofShape,
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength / 4, CAR_SETTINGS.chassisHeight + 0.15, 0)
@@ -149,18 +150,16 @@ export const carPhysicEmulator = (
 	vehicle.addToWorld(physicWorld);
 	physicWorld.addBody(chassisBody);
 
-	const wheelBodies: CANNON.Body[] = [];
-	vehicle.wheelInfos.forEach(wheel => {
+	const wheelBodies: CANNON.Body[] = vehicle.wheelInfos.map(wheel => {
 		const cylinderShape = new CANNON.Cylinder(wheel.radius, wheel.radius, wheel.radius / 1.5, 20);
 		const wheelBody = new CANNON.Body({
 			mass: 0,
-			// material: wheelMaterial,
 		});
-		wheelBody.collisionFilterGroup = 0; // turn off collisions
+		wheelBody.collisionFilterGroup = 0;
 		const quaternion = new CANNON.Quaternion().setFromEuler(-Math.PI / 2, 0, 0);
 		wheelBody.addShape(cylinderShape, new CANNON.Vec3(), quaternion);
-		wheelBodies.push(wheelBody);
 		physicWorld.addBody(wheelBody);
+		return wheelBody;
 	});
 
 	eventBusSubscriptions.subscribeOnTickPhysic({
@@ -202,7 +201,6 @@ export const carPhysicEmulator = (
 				steering: CAR_SPECS.steering,
 				accelerating: CAR_SPECS.accelerating,
 				brake: CAR_SPECS.brake,
-				isNotMove: CAR_SPECS.isNotMove,
 				chassis: {
 					position: chassisBody.position,
 					quaternion: chassisBody.quaternion,

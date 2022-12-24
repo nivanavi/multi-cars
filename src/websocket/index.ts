@@ -36,13 +36,11 @@ export const setupWebsocket = (props: WebsocketProps): void => {
 	};
 
 	eventBusSubscriptions.subscribeOnCarMove({
-		callback: ({ payload: { chassis, steering, accelerating, brake, id, isNotMove } }) => {
+		callback: ({ payload: { chassis, steering, accelerating, brake, id } }) => {
 			if (websocket.readyState !== 1) return;
-			if (isNotMove) return;
 			sendMessages({
 				action: 'CAR_MOVE',
 				payload: {
-					isNotMove,
 					chassis,
 					steering,
 					accelerating,

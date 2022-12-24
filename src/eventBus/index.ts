@@ -56,10 +56,6 @@ export type CarMoveSpecs = {
 	 * текущее положение колес
 	 */
 	wheels?: BodyInformation[];
-	/**
-	 * флаг того что с машиной ничего не происходит
-	 */
-	isNotMove: boolean;
 };
 
 export type BallMoveSpecs = {

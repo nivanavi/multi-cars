@@ -78,9 +78,20 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 		accelerating: 0,
 		brake: 0,
 		steering: 0,
-		isNotMove: false,
 	};
 
+	const calcSpeedAndDirectionHandler = (): void => {
+		// рассчитываем скорость автомобиля
+		const positionDelta = new CANNON.Vec3().copy(chassis.position).vsub(CAR_SETTINGS.prevPosition);
+		CAR_SETTINGS.prevPosition.copy(chassis.position);
+		CAR_SETTINGS.speed = positionDelta.length();
+
+		// рассчитываем то как движется машина
+		const localForward = new CANNON.Vec3(1, 0, 0);
+		chassis.vectorToWorldFrame(localForward, CAR_SETTINGS.worldForward);
+		CAR_SETTINGS.forwardDelta = CAR_SETTINGS.worldForward.dot(positionDelta);
+		CAR_SETTINGS.isGoForward = CAR_SETTINGS.forwardDelta < 0;
+	};
 	const checkCornerCaseSteering = (): void => {
 		// проверяем не превысили ли максимально возможный выворот колес
 		if (Math.abs(CURRENT_SPECS.steering) > CAR_SETTINGS.maxSteeringForce) {
@@ -174,16 +185,8 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 
 	eventBusSubscriptions.subscribeOnTickPhysic({
 		callback: () => {
-			// рассчитываем скорость автомобиля
-			const positionDelta = new CANNON.Vec3().copy(chassis.position).vsub(CAR_SETTINGS.prevPosition);
-			CAR_SETTINGS.prevPosition.copy(chassis.position);
-			CAR_SETTINGS.speed = positionDelta.length();
-
-			// рассчитываем то как движется машина
-			const localForward = new CANNON.Vec3(1, 0, 0);
-			chassis.vectorToWorldFrame(localForward, CAR_SETTINGS.worldForward);
-			CAR_SETTINGS.forwardDelta = CAR_SETTINGS.worldForward.dot(positionDelta);
-			CAR_SETTINGS.isGoForward = CAR_SETTINGS.forwardDelta < 0;
+			// рассчитываем скорость и направление движения
+			calcSpeedAndDirectionHandler();
 
 			// обновляем поворот колес
 			steeringHandler();
@@ -204,7 +207,6 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 	// todo разграничение зон ответсвенности физика\графика\обновление данных с сервера | done
 	// todo звуки
 	// todo низкая связанность с помощью эмиттера | done
-	// todo нормально реализовать то когда машина не двигается
 	// todo переделать крышу машины на сферу | done
 	// todo интерфейс создания ника
 	// todo интерфейс создания комнаты
@@ -217,7 +219,7 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 	// todo написать сервер так что бы он не слал события движения машинки типа их же отправителю | done
 	// todo поправить трение машины об физические объекты мапы (а то просто скользит) | done
 	// todo подумать как сделать торможение на s до момента остановки а потом уже как движение назад | done
-	// todo синхоронизированный мяч для катания с режимом сна и не большим количеством граней
+	// todo синхоронизированный мяч для катания с режимом сна
 	// todo графика и удаление ее для каждой машины | done
 
 	/** мапа
