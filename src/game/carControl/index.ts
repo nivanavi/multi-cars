@@ -73,7 +73,12 @@ const CAR_SETTINGS = {
 /**
  * функция осуществляющая рассчет характеристик машины исходя их действий пользователя
  */
-export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMoveSpecs) => void): void => {
+export const setupCarControl = (
+	chassis: CANNON.Body,
+	updateSpecs: (specs: CarMoveSpecs) => void
+): {
+	destroy: () => void;
+} => {
 	const CURRENT_SPECS: CarMoveSpecs = {
 		accelerating: 0,
 		brake: 0,
@@ -183,44 +188,51 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 		}
 	};
 
-	eventBusSubscriptions.subscribeOnTickPhysic({
-		callback: () => {
-			// рассчитываем скорость и направление движения
-			calcSpeedAndDirectionHandler();
+	const respawnHandler = (): void => {
+		// const { x, y, z } = chassis.position;
+		// chassis.position.set(x, y + 2, z);
+		// chassis.quaternion.set(-1, 0, 0, Math.PI / 2);
+		console.log(chassis.quaternion);
+	};
 
-			// обновляем поворот колес
-			steeringHandler();
-			checkCornerCaseSteering();
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+		// рассчитываем скорость и направление движения
+		calcSpeedAndDirectionHandler();
 
-			// обновляем ускорение автомобиля
-			accelerateHandler();
-			checkCornerCaseAccelerating();
+		// обновляем поворот колес
+		steeringHandler();
+		checkCornerCaseSteering();
 
-			// обновляем торможение
-			brakeHandler();
+		// обновляем ускорение автомобиля
+		accelerateHandler();
+		checkCornerCaseAccelerating();
 
-			updateSpecs(CURRENT_SPECS);
-		},
+		// обновляем торможение
+		brakeHandler();
+
+		updateSpecs(CURRENT_SPECS);
 	});
 
 	// todo сделать машинку аркаднее (интересное управление фо фан) | done
 	// todo разграничение зон ответсвенности физика\графика\обновление данных с сервера | done
-	// todo звуки
 	// todo низкая связанность с помощью эмиттера | done
 	// todo переделать крышу машины на сферу | done
-	// todo интерфейс создания ника
-	// todo интерфейс создания комнаты
-	// todo интерфейс отправки ссылки другу
-	// todo нотификация подключения и отключения
-	// todo ники игроков над машинкой
+	// todo нотификация подключения и отключения | done
 	// todo моделька машины | done
 	// todo моделька колес | done
-	// todo respawn
 	// todo написать сервер так что бы он не слал события движения машинки типа их же отправителю | done
 	// todo поправить трение машины об физические объекты мапы (а то просто скользит) | done
 	// todo подумать как сделать торможение на s до момента остановки а потом уже как движение назад | done
-	// todo синхоронизированный мяч для катания с режимом сна
 	// todo графика и удаление ее для каждой машины | done
+	// todo интерфейс создания ника | done
+	// todo интерфейс создания комнаты | done
+	// todo интерфейс отправки ссылки другу | done
+	// todo на превью машинка на подиуме | done
+	// todo ники игроков над машинкой
+	// todo фикс камеры внутри объектов
+	// todo звуки
+	// todo respawn
+	// todo синхоронизированный мяч для катания с режимом сна
 
 	/** мапа
 	 * звезды на небе | done
@@ -231,8 +243,9 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 	 * пасхалки ?
 	 *
 	 */
-	const keyPressHandler: (ev: KeyboardEvent, isPressed: boolean) => void = (ev, isPressed) => {
+	const keyPressHandler = (ev: KeyboardEvent): void => {
 		if (ev.repeat) return;
+		const isPressed = ev.type === 'keydown';
 		switch (ev.code) {
 			case 'KeyW':
 				CAR_SETTINGS.up = isPressed;
@@ -252,9 +265,10 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 			case 'ShiftLeft':
 				CAR_SETTINGS.boost = isPressed;
 				break;
-			// case 'KeyR':
-			// 	respawn();
-			// 	break;
+			case 'KeyR':
+				if (!isPressed) return;
+				respawnHandler();
+				break;
 			default:
 				break;
 		}
@@ -269,7 +283,15 @@ export const setupCarControl = (chassis: CANNON.Body, updateSpecs: (specs: CarMo
 		CAR_SETTINGS.boost = false;
 	};
 
-	window.addEventListener('keydown', ev => keyPressHandler(ev, true));
-	window.addEventListener('keyup', ev => keyPressHandler(ev, false));
+	window.addEventListener('keydown', keyPressHandler);
+	window.addEventListener('keyup', keyPressHandler);
 	window.addEventListener('blur', windowBlurHandler);
+
+	return {
+		destroy: (): void => {
+			window.removeEventListener('keydown', keyPressHandler);
+			window.removeEventListener('keyup', keyPressHandler);
+			window.removeEventListener('blur', windowBlurHandler);
+		},
+	};
 };

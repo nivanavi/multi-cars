@@ -12,16 +12,12 @@ export const setupRenderer = (
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 	renderer.setClearColor('#000');
 
-	eventBusSubscriptions.subscribeOnResizeWithInit({
-		callback: ({ payload: { height, width } }) => {
-			renderer.setSize(width, height);
-		},
+	eventBusSubscriptions.subscribeOnResizeWithInit(({ height, width }) => {
+		renderer.setSize(width, height);
 	});
 
-	eventBusSubscriptions.subscribeOnTick({
-		callback: () => {
-			renderer.render(scene, camera);
-		},
+	eventBusSubscriptions.subscribeOnTick(() => {
+		renderer.render(scene, camera);
 	});
 
 	return {

@@ -1,27 +1,35 @@
+import { v4 } from 'uuid';
 import { isJsonString } from '../libs/utils';
-import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions } from '../eventBus';
+import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../eventBus';
 
+type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
 type WebsocketMessages =
 	| {
 			action: 'CAR_MOVE';
-			payload: CarMoveSpecs & { carId: string; roomId: string };
+			payload: CarMoveSpecs & GeneralMessageProps;
 	  }
-	| { action: 'CAR_DELETE'; payload: { carId: string; roomId: string } }
-	| { action: 'CAR_CONNECTED'; payload: { carId: string; roomId: string } }
-	| { action: 'BALL_MOVE'; payload: BallMoveSpecs & { carId: string; roomId: string } };
+	| { action: 'CAR_DELETE'; payload: GeneralMessageProps }
+	| { action: 'CAR_CONNECTED'; payload: GeneralMessageProps }
+	| { action: 'BALL_MOVE'; payload: BallMoveSpecs & GeneralMessageProps };
 
 const WS_URL = process.env.REACT_APP_WS_URL || '';
 
 type WebsocketProps = {
 	rootCarId: string;
+	nickname: string;
 	roomId: string;
 	onCarDelete: (id: string) => void;
 	onCarUpdate: (data: { id: string } & CarMoveSpecs) => void;
 	onBallMove: (data: BallMoveSpecs) => void;
 };
 
-export const setupWebsocket = (props: WebsocketProps): void => {
-	const { rootCarId, roomId, onCarDelete, onCarUpdate, onBallMove } = props;
+export const setupWebsocket = (
+	props: WebsocketProps
+): {
+	close: () => void;
+} => {
+	const { rootCarId, roomId, nickname, onCarDelete, onCarUpdate, onBallMove } = props;
+
 	const websocket = new WebSocket(WS_URL);
 
 	const sendMessages = (message: WebsocketMessages): void => {
@@ -31,40 +39,39 @@ export const setupWebsocket = (props: WebsocketProps): void => {
 	websocket.onopen = (): void => {
 		sendMessages({
 			action: 'CAR_CONNECTED',
-			payload: { carId: rootCarId, roomId },
+			payload: { carId: rootCarId, roomId, nickname },
 		});
 	};
 
-	eventBusSubscriptions.subscribeOnCarMove({
-		callback: ({ payload: { chassis, steering, accelerating, brake, id } }) => {
-			if (websocket.readyState !== 1) return;
-			sendMessages({
-				action: 'CAR_MOVE',
-				payload: {
-					chassis,
-					steering,
-					accelerating,
-					brake,
-					carId: id,
-					roomId,
-				},
-			});
-		},
+	eventBusSubscriptions.subscribeOnCarMove(({ chassis, steering, type, accelerating, brake, id }) => {
+		if (websocket.readyState !== 1) return;
+		sendMessages({
+			action: 'CAR_MOVE',
+			payload: {
+				chassis,
+				steering,
+				accelerating,
+				type,
+				brake,
+				carId: id,
+				roomId,
+				nickname,
+			},
+		});
 	});
 
-	eventBusSubscriptions.subscribeOnBallMove({
-		callback: ({ payload: { position, quaternion } }) => {
-			if (websocket.readyState !== 1) return;
-			sendMessages({
-				action: 'BALL_MOVE',
-				payload: {
-					position,
-					quaternion,
-					carId: rootCarId,
-					roomId,
-				},
-			});
-		},
+	eventBusSubscriptions.subscribeOnBallMove(({ position, quaternion }) => {
+		if (websocket.readyState !== 1) return;
+		sendMessages({
+			action: 'BALL_MOVE',
+			payload: {
+				position,
+				quaternion,
+				carId: rootCarId,
+				roomId,
+				nickname,
+			},
+		});
 	});
 
 	websocket.onmessage = (message): void => {
@@ -72,14 +79,19 @@ export const setupWebsocket = (props: WebsocketProps): void => {
 		const data: WebsocketMessages = JSON.parse(message.data);
 		switch (data.action) {
 			case 'CAR_CONNECTED':
-				console.log(`к нам присоединилась машина с id ${data.payload.carId} а наш id ${rootCarId}`);
+				eventBusTriggers.triggerNotifications({
+					id: v4(),
+					text: `Встречайте: ${data.payload.nickname || data.payload.carId}`,
+				});
 				break;
 			case 'CAR_DELETE':
-				console.log(`от нас отсоединилась машина с id ${data.payload.carId} а наш id ${rootCarId}`);
+				eventBusTriggers.triggerNotifications({
+					id: v4(),
+					text: `К сожалению ${data.payload.nickname || data.payload.carId} позвала мама`,
+				});
 				onCarDelete(data.payload.carId);
 				break;
 			case 'CAR_MOVE':
-				// console.log(`движется машина с id ${data.payload.carId} а наш id ${rootCarId}`);
 				onCarUpdate({
 					...data.payload,
 					id: data.payload.carId,
@@ -92,5 +104,9 @@ export const setupWebsocket = (props: WebsocketProps): void => {
 			default:
 				break;
 		}
+	};
+
+	return {
+		close: () => websocket.close(),
 	};
 };

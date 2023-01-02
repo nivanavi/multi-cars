@@ -19,10 +19,8 @@ export const setupWater = (scene: THREE.Scene): void => {
 		fragmentShader: waterFragmentsShader,
 	});
 
-	eventBusSubscriptions.subscribeOnTick({
-		callback: ({ payload: { time } }) => {
-			waterMaterial.uniforms.uTime.value = time * 3;
-		},
+	eventBusSubscriptions.subscribeOnTick(({ time }) => {
+		waterMaterial.uniforms.uTime.value = time * 3;
 	});
 
 	const waterContainer = new THREE.Group();

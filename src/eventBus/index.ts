@@ -1,5 +1,7 @@
 import EventEmitter from 'events';
 import * as CANNON from 'cannon-es';
+import * as THREE from 'three';
+import { Car } from '../game/carGraphics';
 
 const EVENT_EMITTER = new EventEmitter();
 
@@ -9,23 +11,8 @@ enum CORE_EVENTS {
 	ON_RESIZE = 'ON_RESIZE',
 	ON_CAR_MOVE = 'ON_CAR_MOVE',
 	ON_BALL_MOVE = 'ON_BALL_MOVE',
+	ON_NOTIFICATION = 'ON_NOTIFICATION',
 }
-
-type SubscribeOnTickCmd = {
-	callback: (payload: Pick<TriggerOnTickCmd, 'payload'>) => void;
-};
-type SubscribeOnResizeCmd = {
-	callback: (payload: Pick<TriggerOnResizeCmd, 'payload'>) => void;
-};
-type SubscribeOnTickPhysicCmd = {
-	callback: () => void;
-};
-type SubscribeOnCarMoveCmd = {
-	callback: (payload: Pick<TriggerOnCarMoveCmd, 'payload'>) => void;
-};
-type SubscribeOnBallMoveCmd = {
-	callback: (payload: Pick<TriggerOnBallMoveCmd, 'payload'>) => void;
-};
 
 type BodyInformation = {
 	position: CANNON.Vec3;
@@ -42,12 +29,16 @@ export type CarMoveSpecs = {
 	 */
 	accelerating: number;
 	/**
-	 * текущая сила торможения
+	 * текущее положение шасси
 	 */
 	brake: number;
 	/**
 	 * текущее положение шасси
 	 */
+	/**
+	 * тип модели авто
+	 */
+	type?: Car;
 	chassis?: {
 		position: CANNON.Vec3;
 		quaternion: CANNON.Quaternion;
@@ -63,45 +54,60 @@ export type BallMoveSpecs = {
 	quaternion: CANNON.Quaternion;
 };
 
-type TriggerOnCarMoveCmd = {
-	payload: {
-		/**
-		 * id движущейся машины
-		 */
-		id: string;
-	} & CarMoveSpecs;
-};
-type TriggerOnBallMoveCmd = {
-	payload: BallMoveSpecs;
-};
-type TriggerOnResizeCmd = {
-	payload: {
-		width: number;
-		height: number;
-	};
-};
-type TriggerOnTickCmd = {
-	payload: {
-		time: number;
-	};
+export type NotificationMessage = {
+	id: string;
+	text: string;
 };
 
+export type SubscribeOnTickCmd = (payload: TriggerOnTickCmd) => void;
+export type SubscribeNotificationsCmd = (payload: TriggerNotificationsCmd) => void;
+export type SubscribeOnResizeCmd = (payload: TriggerOnResizeCmd) => void;
+export type SubscribeOnTickPhysicCmd = () => void;
+export type SubscribeOnCarMoveCmd = (payload: TriggerOnCarMoveCmd) => void;
+export type SubscribeOnBallMoveCmd = (payload: TriggerOnBallMoveCmd) => void;
+
+export type TriggerOnCarMoveCmd = {
+	/**
+	 * id движущейся машины
+	 */
+	id: string;
+} & CarMoveSpecs;
+
+export type TriggerOnBallMoveCmd = BallMoveSpecs;
+export type TriggerOnResizeCmd = {
+	width: number;
+	height: number;
+};
+export type TriggerOnTickCmd = {
+	time: number;
+};
+export type TriggerNotificationsCmd = NotificationMessage;
+
 export const eventBusSubscriptions = {
-	subscribeOnTick: (cmd: SubscribeOnTickCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_TICK, cmd.callback);
+	subscribeOnTick: (callback: SubscribeOnTickCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_TICK, callback);
 	},
-	subscribeOnTickPhysic: (cmd: SubscribeOnTickPhysicCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_TICK_PHYSIC, cmd.callback);
+	subscribeOnTickPhysic: (callback: SubscribeOnTickPhysicCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_TICK_PHYSIC, callback);
 	},
-	subscribeOnResizeWithInit: (cmd: SubscribeOnResizeCmd): void => {
-		cmd.callback({ payload: { width: window.innerWidth, height: window.innerHeight } });
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_RESIZE, cmd.callback);
+	subscribeOnResizeWithInit: (callback: SubscribeOnResizeCmd): void => {
+		callback({ width: window.innerWidth, height: window.innerHeight });
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_RESIZE, callback);
 	},
-	subscribeOnCarMove: (cmd: SubscribeOnCarMoveCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CAR_MOVE, cmd.callback);
+	subscribeOnCarMove: (callback: SubscribeOnCarMoveCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CAR_MOVE, callback);
 	},
-	subscribeOnBallMove: (cmd: SubscribeOnBallMoveCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_BALL_MOVE, cmd.callback);
+	subscribeOnBallMove: (callback: SubscribeOnBallMoveCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_BALL_MOVE, callback);
+	},
+	subscribeNotifications: (callback: SubscribeNotificationsCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_NOTIFICATION, callback);
+	},
+	unsubscribe: (staySubscriptions: (keyof typeof CORE_EVENTS)[]): void => {
+		Object.entries(CORE_EVENTS).forEach(([key]) => {
+			if (staySubscriptions.includes(key as CORE_EVENTS)) return;
+			EVENT_EMITTER.removeAllListeners(key);
+		});
 	},
 };
 
@@ -121,4 +127,35 @@ export const eventBusTriggers = {
 	triggerOnBallMove: (payload: TriggerOnBallMoveCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_BALL_MOVE, payload);
 	},
+	triggerNotifications: (payload: TriggerNotificationsCmd): void => {
+		EVENT_EMITTER.emit(CORE_EVENTS.ON_NOTIFICATION, payload);
+	},
 };
+
+setInterval(() => {
+	console.log(
+		'listeners',
+		Object.entries(CORE_EVENTS).reduce<string[]>((prev, [key]) => {
+			prev.push(`${key} - ${EVENT_EMITTER.listenerCount(key)}`);
+			return prev;
+		}, [])
+	);
+}, 1000);
+
+const CLOCK = new THREE.Clock();
+const updateSize = (): void => {
+	eventBusTriggers.triggerOnResize({
+		width: window.innerWidth,
+		height: window.innerHeight,
+	});
+};
+
+window.addEventListener('resize', updateSize);
+
+const tick = (): void => {
+	const time = CLOCK.getElapsedTime();
+	eventBusTriggers.triggerOnTick({ time });
+
+	window.requestAnimationFrame(tick);
+};
+window.requestAnimationFrame(tick);

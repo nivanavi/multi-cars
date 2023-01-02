@@ -18,16 +18,12 @@ export const setupBall = (
 	ballBody.allowSleep = true;
 	physicWorld.addBody(ballBody);
 
-	eventBusSubscriptions.subscribeOnTickPhysic({
-		callback: () => {
-			if (ballBody.sleepState !== 0) return;
-			eventBusTriggers.triggerOnBallMove({
-				payload: {
-					position: ballBody.position,
-					quaternion: ballBody.quaternion,
-				},
-			});
-		},
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+		if (ballBody.sleepState !== 0) return;
+		eventBusTriggers.triggerOnBallMove({
+			position: ballBody.position,
+			quaternion: ballBody.quaternion,
+		});
 	});
 
 	const updateBallSpecs = (data: BallMoveSpecs): void => {

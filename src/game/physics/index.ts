@@ -59,12 +59,10 @@ export const setupPhysics = (): {
 	physicWorld.addContactMaterial(carCarContactMaterial);
 	physicWorld.addContactMaterial(carRumpContactMaterial);
 
-	eventBusSubscriptions.subscribeOnTick({
-		callback: () => {
-			// очень крутая тема избавляет от боли кастомного ограничения частоты вызовов функции апдейта физики
-			// любая герцовка будет ограничиваться 60 "кадрами"
-			physicWorld.fixedStep();
-		},
+	eventBusSubscriptions.subscribeOnTick(() => {
+		// очень крутая тема избавляет от боли кастомного ограничения частоты вызовов функции апдейта физики
+		// любая герцовка будет ограничиваться 60 "кадрами"
+		physicWorld.fixedStep();
 	});
 
 	return {

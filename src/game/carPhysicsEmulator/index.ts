@@ -1,15 +1,10 @@
 import * as CANNON from 'cannon-es';
-import * as THREE from 'three';
 import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
 import { carPhysicsMaterial } from '../physics';
-import { setupCarGraphics } from '../carGraphics';
+import { CarGraphicsCmd, setupCarGraphics } from '../carGraphics';
 
 type CarPhysicsEmulatorCmd = {
-	/**
-	 * сцена
-	 */
-	scene: THREE.Scene;
 	/**
 	 * физический "мир"
 	 */
@@ -22,7 +17,7 @@ type CarPhysicsEmulatorCmd = {
 	 * машина не будет тригерить событие движения
 	 */
 	isNotTriggerEvent?: boolean;
-};
+} & CarGraphicsCmd;
 
 const CAR_SETTINGS = {
 	chassisWidth: 1.4,
@@ -95,10 +90,10 @@ export const carPhysicEmulator = (
 	chassis: CANNON.Body;
 	updateSpecs: (specs: CarMoveSpecs) => void;
 } => {
-	const { id, physicWorld, isNotTriggerEvent, scene } = props;
+	const { id, physicWorld, isNotTriggerEvent, scene, type } = props;
 	let CAR_SPECS: CarMoveSpecs | null = null;
 
-	const { updateHandler, deleteHandler: deleteGraphicHandler } = setupCarGraphics(scene);
+	const { updateHandler, deleteHandler: deleteGraphicHandler } = setupCarGraphics({ scene, type });
 
 	const chassisShape = new CANNON.Box(
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
@@ -162,60 +157,56 @@ export const carPhysicEmulator = (
 		return wheelBody;
 	});
 
-	eventBusSubscriptions.subscribeOnTickPhysic({
-		callback: () => {
-			// обновляем физическое положение колес
-			vehicle.wheelInfos.forEach((wheel, index) => {
-				vehicle.updateWheelTransform(index);
-				const transform = vehicle.wheelInfos[index].worldTransform;
-				const wheelBody = wheelBodies[index];
-				wheelBody.position.copy(transform.position);
-				wheelBody.quaternion.copy(transform.quaternion);
-			});
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+		// обновляем физическое положение колес
+		vehicle.wheelInfos.forEach((wheel, index) => {
+			vehicle.updateWheelTransform(index);
+			const transform = vehicle.wheelInfos[index].worldTransform;
+			const wheelBody = wheelBodies[index];
+			wheelBody.position.copy(transform.position);
+			wheelBody.quaternion.copy(transform.quaternion);
+		});
 
-			if (!CAR_SPECS) return;
-			// обновляем поворот колес
-			vehicle.setSteeringValue(CAR_SPECS.steering, WHEEL_SETTINGS.frontLeft);
-			vehicle.setSteeringValue(CAR_SPECS.steering, WHEEL_SETTINGS.frontRight);
+		if (!CAR_SPECS) return;
+		// обновляем поворот колес
+		vehicle.setSteeringValue(CAR_SPECS.steering, WHEEL_SETTINGS.frontLeft);
+		vehicle.setSteeringValue(CAR_SPECS.steering, WHEEL_SETTINGS.frontRight);
 
-			// обновляем ускорение автомобиля
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.backLeft);
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.backRight);
+		// обновляем ускорение автомобиля
+		vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.backLeft);
+		vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.backRight);
 
-			// uncomment it for 4x4
-			// vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.frontLeft)
-			// vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.frontRight)
+		// uncomment it for 4x4
+		// vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.frontLeft)
+		// vehicle.applyEngineForce(CAR_SPECS.accelerating, WHEEL_SETTINGS.frontRight)
 
-			// обновляем торможение автомобиля
-			vehicle.setBrake(CAR_SPECS.brake, 0);
-			vehicle.setBrake(CAR_SPECS.brake, 1);
-			vehicle.setBrake(CAR_SPECS.brake, 2);
-			vehicle.setBrake(CAR_SPECS.brake, 3);
+		// обновляем торможение автомобиля
+		vehicle.setBrake(CAR_SPECS.brake, 0);
+		vehicle.setBrake(CAR_SPECS.brake, 1);
+		vehicle.setBrake(CAR_SPECS.brake, 2);
+		vehicle.setBrake(CAR_SPECS.brake, 3);
 
-			if (CAR_SPECS.chassis) {
-				chassisBody.position.copy(CAR_SPECS.chassis.position);
-				chassisBody.quaternion.copy(CAR_SPECS.chassis.quaternion);
-			}
+		if (CAR_SPECS.chassis) {
+			chassisBody.position.copy(CAR_SPECS.chassis.position);
+			chassisBody.quaternion.copy(CAR_SPECS.chassis.quaternion);
+		}
 
-			const carMoveSpecs: CarMoveSpecs = {
-				steering: CAR_SPECS.steering,
-				accelerating: CAR_SPECS.accelerating,
-				brake: CAR_SPECS.brake,
-				chassis: {
-					position: chassisBody.position,
-					quaternion: chassisBody.quaternion,
-				},
-				wheels: vehicle.wheelInfos.map((_, index) => ({
-					position: wheelBodies[index].position,
-					quaternion: wheelBodies[index].quaternion,
-				})),
-			};
-			updateHandler(carMoveSpecs);
-			if (isNotTriggerEvent) return;
-			eventBusTriggers.triggerOnCarMove({
-				payload: { id, ...carMoveSpecs },
-			});
-		},
+		const carMoveSpecs: CarMoveSpecs = {
+			steering: CAR_SPECS.steering,
+			accelerating: CAR_SPECS.accelerating,
+			brake: CAR_SPECS.brake,
+			chassis: {
+				position: chassisBody.position,
+				quaternion: chassisBody.quaternion,
+			},
+			wheels: vehicle.wheelInfos.map((_, index) => ({
+				position: wheelBodies[index].position,
+				quaternion: wheelBodies[index].quaternion,
+			})),
+		};
+		updateHandler(carMoveSpecs);
+		if (isNotTriggerEvent) return;
+		eventBusTriggers.triggerOnCarMove({ id, ...carMoveSpecs });
 	});
 
 	const deleteHandler = (): void => {

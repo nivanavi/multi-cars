@@ -32,6 +32,7 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 		castShadow: true,
 		scale: new THREE.Vector3(1, 1, 1),
 		callback: mapContainer => {
+			console.log(mapContainer);
 			mapContainer.children[0].children.forEach(object => {
 				const { name } = object;
 				if (name.startsWith(NO_CAST_OBJECT_NAME)) {
@@ -54,7 +55,6 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 					physicWorld.addBody(objectBody);
 				}
 			});
-			console.log(mapContainer);
 			scene.add(mapContainer);
 		},
 	});

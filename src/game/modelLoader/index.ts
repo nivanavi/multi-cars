@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-type CreateModelCmd = {
+export type CreateModelCmd = {
 	name: string;
 	position?: THREE.Vector3;
 	scale?: THREE.Vector3;

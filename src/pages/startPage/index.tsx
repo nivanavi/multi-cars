@@ -1,0 +1,367 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { v4 } from 'uuid';
+import * as THREE from 'three';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
+import { TTFLoader } from 'three/examples/jsm/loaders/TTFLoader';
+import { StyledChooseItem, StyledNicknameWrapper, StyledStartPageWrapper, StyledStartWrapper } from './styles';
+import { eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
+import { CAR_ITEM, getCarType, getNickname, NICKNAME_ITEM } from '../../libs/utils';
+import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
+import { setupRenderer } from '../../libs/renderer';
+import { Car, setupCarGraphics } from '../../game/carGraphics';
+
+const CREATE_ROOM_ID = v4();
+const NICKNAME = getNickname();
+
+const defaultCarSpecs =
+	'{"steering":0.3240707511102649,"accelerating":0,"brake":0,"chassis":{"position":{"x":6.209922981512133e-10,"y":1.2180300790771568,"z":1.043726032343269e-9},"quaternion":{"x":2.286369093008103e-13,"y":2.544033793127587e-10,"z":0.0008983566672058353,"w":0.999999596477568}},"wheels":[{"position":{"x":-1.7988924781656301,"y":0.5999990315463578,"z":1.2000000019590153},"quaternion":{"x":-0.0001724171132824505,"y":0.1957628569871226,"z":0.000898246046037732,"w":0.9806508386019049}},{"position":{"x":-1.7988924793867669,"y":0.5999990315463583,"z":-1.1999999980409854},"quaternion":{"x":-0.00017241691407176215,"y":0.19576285698729803,"z":0.0008982470439600734,"w":0.9806508386009909}},{"position":{"x":1.9511135746794022,"y":0.599999031546358,"z":1.2000000000509863},"quaternion":{"x":2.2378236770171426e-13,"y":2.544033836293054e-10,"z":0.000879274610775308,"w":0.9999996134380047}},{"position":{"x":1.9511135734582654,"y":0.5999990315463583,"z":-1.1999999999490145},"quaternion":{"x":2.2378262658572286e-13,"y":2.544033836290777e-10,"z":0.0008792756283872,"w":0.99999961343711}}]}';
+
+let prevTime = 0;
+
+const setupStartScene = (
+	nickname: string,
+	canvas: HTMLCanvasElement
+): {
+	destroy: () => void;
+} => {
+	const CAR_TYPE = getCarType();
+	const CARS_TO_CHOOSE: Car[] = [CAR_TYPE, ...Object.values(Car).filter(car => car !== CAR_TYPE)];
+
+	// scene
+	const scene = new THREE.Scene();
+
+	// camera
+	const camera = new THREE.PerspectiveCamera(50, 1.7, 1, 10000);
+	camera.position.set(22, 5, 0);
+	eventBusSubscriptions.subscribeOnResizeWithInit(({ height, width }) => {
+		camera.aspect = width / height;
+		camera.updateProjectionMatrix();
+	});
+	camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+	// renderer
+	const { renderer } = setupRenderer(canvas, scene, camera);
+	renderer.setClearColor('#000000');
+
+	// lights
+	const lightsSettings = {
+		isStart: false,
+		intensity: 0,
+		maxIntensity: 0.8,
+	};
+
+	const ambientLight = new THREE.AmbientLight('#ffffff');
+	ambientLight.intensity = lightsSettings.intensity;
+
+	const lightContainer = new THREE.Group();
+	lightContainer.position.set(10, 0, 0);
+	const pointLight = new THREE.PointLight('#ffffff');
+	pointLight.intensity = lightsSettings.intensity;
+	pointLight.shadow.mapSize.height = 2048;
+	pointLight.shadow.mapSize.width = 2048;
+	pointLight.position.set(7, 7, 0);
+	pointLight.castShadow = true;
+	lightContainer.add(pointLight);
+	scene.add(lightContainer);
+	scene.add(ambientLight);
+
+	// plane
+	const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+	const planeMaterial = new THREE.MeshStandardMaterial({ color: '#000000' });
+	const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+	planeMesh.receiveShadow = true;
+	planeMesh.rotation.x = -Math.PI / 2;
+	scene.add(planeMesh);
+
+	// car podiums
+	const podiumSettings = {
+		currentRotation: 0,
+		rotationStep: 0.01,
+		selectedRotation: 0,
+		selectedIndex: 0,
+		selectStep: Math.PI,
+	};
+
+	const podiumsContainer = new THREE.Group();
+	podiumsContainer.position.set(0, 1, 0);
+	const podiumGeometry = new THREE.CylinderGeometry(4, 4, 2, 16);
+	const podiumMaterial = new THREE.MeshStandardMaterial({ color: '#006263' });
+	const podiumMesh = new THREE.Mesh(podiumGeometry, podiumMaterial);
+	podiumMesh.castShadow = true;
+	podiumMesh.receiveShadow = true;
+
+	const podium1Container = new THREE.Group();
+	podiumsContainer.add(podium1Container);
+	const podium1 = new THREE.Mesh().copy(podiumMesh);
+	podium1Container.add(podium1);
+	podium1.position.set(0, -1, 0);
+	podium1Container.rotation.y = Math.PI * 1.1;
+	podium1Container.position.set(10, 1, 0);
+	const {
+		carContainer: firstCar,
+		wheels: firstWheels,
+		updateHandler: updateFirst,
+	} = setupCarGraphics({
+		scene,
+		type: CARS_TO_CHOOSE[0],
+	});
+	podium1Container.add(firstCar);
+
+	const podium2Container = new THREE.Group();
+	podiumsContainer.add(podium2Container);
+	const podium2 = new THREE.Mesh().copy(podiumMesh);
+	podium2Container.add(podium2);
+	podium2.position.set(0, -1, 0);
+	podium2Container.position.set(-10, 1, 0);
+	podium2Container.rotation.y = Math.PI * 0.1;
+	const {
+		carContainer: secondCar,
+		wheels: secondWheels,
+		updateHandler: updateSecondCar,
+	} = setupCarGraphics({
+		scene,
+		type: CARS_TO_CHOOSE[1],
+	});
+	podium2Container.add(secondCar);
+
+	setTimeout(() => {
+		updateFirst(JSON.parse(defaultCarSpecs));
+		updateSecondCar(JSON.parse(defaultCarSpecs));
+		firstWheels.forEach(wheel => {
+			podium1Container.add(wheel);
+		});
+		secondWheels.forEach(wheel => {
+			podium2Container.add(wheel);
+		});
+		scene.add(podiumsContainer);
+		lightsSettings.isStart = true;
+	}, 500);
+
+	const fontLoader = new FontLoader();
+	const ttfLoader = new TTFLoader();
+
+	ttfLoader.load('fonts/JetBrainsMono-Regular.ttf', jetFont => {
+		const jetFontParse = fontLoader.parse(jetFont);
+		const nicknameGeometry = new TextGeometry(nickname.toUpperCase(), {
+			size: 0.8,
+			height: 0.2,
+			// curveSegments: 8,
+			font: jetFontParse,
+		});
+		const nicknameMaterial = new THREE.MeshStandardMaterial({ color: '#5b3197' });
+		const nicknameMesh = new THREE.Mesh(nicknameGeometry, nicknameMaterial);
+		nicknameMesh.position.set(14.5, 1, nickname.length / 3);
+		nicknameMesh.rotation.y = Math.PI / 2;
+		nicknameMesh.castShadow = true;
+		nicknameMesh.receiveShadow = true;
+		scene.add(nicknameMesh);
+
+		//
+		// 	const creatorGeometry = new TextGeometry('Created by nivanavi', {
+		// 		size: 5,
+		// 		height: 1.5,
+		// 		// curveSegments: 8,
+		// 		font: jetFontParse,
+		// 	});
+		// 	const creatorMaterial = new THREE.MeshStandardMaterial({ color: '#1f0097' });
+		// 	const creatorMesh = new THREE.Mesh(creatorGeometry, creatorMaterial);
+		// 	creatorMesh.rotation.x = -Math.PI / 3;
+		// 	// creatorMesh.position.x = -nickname.length;
+		// 	creatorMesh.position.set(-45, -12.5, 20);
+		// 	// creatorMesh.position.y = 0;
+		// 	creatorMesh.castShadow = true;
+		// 	creatorMesh.receiveShadow = true;
+		// 	scene.add(creatorMesh);
+	});
+
+	// update things
+	eventBusSubscriptions.subscribeOnTick(({ time }) => {
+		const deltaTime = time - prevTime;
+		lightContainer.rotation.y += deltaTime;
+		prevTime = time;
+
+		if (lightsSettings.isStart && lightsSettings.intensity < lightsSettings.maxIntensity) {
+			lightsSettings.intensity += deltaTime / 2;
+
+			ambientLight.intensity = lightsSettings.intensity;
+			pointLight.intensity = lightsSettings.intensity;
+		}
+
+		if (podiumSettings.currentRotation <= podiumSettings.selectedRotation) {
+			podiumSettings.currentRotation += deltaTime * 4;
+		}
+
+		if (podiumSettings.currentRotation >= podiumSettings.selectedRotation) {
+			podiumSettings.currentRotation -= deltaTime * 4;
+		}
+
+		podiumsContainer.rotation.y = podiumSettings.currentRotation;
+	});
+
+	const keyPressHandler = (ev: KeyboardEvent): void => {
+		if (ev.repeat) return;
+		switch (ev.code) {
+			case 'ArrowLeft':
+				podiumSettings.selectedRotation += podiumSettings.selectStep;
+
+				if (podiumSettings.selectedIndex + 1 > CARS_TO_CHOOSE.length - 1) {
+					podiumSettings.selectedIndex = 0;
+					break;
+				}
+				podiumSettings.selectedIndex += 1;
+				break;
+			case 'ArrowRight':
+				podiumSettings.selectedRotation -= podiumSettings.selectStep;
+
+				if (podiumSettings.selectedIndex - 1 < 0) {
+					podiumSettings.selectedIndex = CARS_TO_CHOOSE.length - 1;
+					break;
+				}
+				podiumSettings.selectedIndex -= 1;
+				break;
+			default:
+				break;
+		}
+
+		localStorage.setItem(CAR_ITEM, CARS_TO_CHOOSE[podiumSettings.selectedIndex] || Car.ELEANOR);
+	};
+
+	window.addEventListener('keydown', keyPressHandler);
+
+	return {
+		destroy: (): void => {
+			renderer.dispose();
+			scene.remove(podiumsContainer, pointLight, ambientLight, planeMesh, lightContainer);
+			window.removeEventListener('keydown', keyPressHandler);
+		},
+	};
+};
+
+const StartPageUi: React.FC = () => {
+	const { canvas } = useSceneIgniterContext();
+	const navigate = useNavigate();
+	const [stateNickname, setNickname] = React.useState<string>(NICKNAME || '');
+	const refNickname = React.useRef<HTMLInputElement | null>(null);
+	const refRoomId = React.useRef<HTMLInputElement | null>(null);
+
+	React.useEffect(() => {
+		if (!canvas) return;
+
+		const { destroy } = setupStartScene(stateNickname || 'Где ник?', canvas);
+		return () => {
+			destroy();
+			eventBusSubscriptions.unsubscribe(['ON_NOTIFICATION']);
+		};
+	}, [canvas, stateNickname]);
+
+	const goToRoom = React.useCallback(
+		(room: string): void => {
+			if (!localStorage.getItem(NICKNAME_ITEM))
+				return eventBusTriggers.triggerNotifications({
+					id: v4(),
+					text: 'Сначала придумайте себе никнейм',
+				});
+			navigate(`/room/${room}`);
+		},
+		[navigate]
+	);
+
+	const saveNicknameHandler = React.useCallback((): void => {
+		const nicknameValue = (refNickname.current?.value || '').trim();
+		if (!nicknameValue.length)
+			return eventBusTriggers.triggerNotifications({
+				id: v4(),
+				text: 'Не валидный никнейм',
+			});
+
+		setNickname(nicknameValue);
+		localStorage.setItem(NICKNAME_ITEM, nicknameValue);
+	}, []);
+
+	const changeNicknameHandler = React.useCallback((): void => {
+		setNickname('');
+		localStorage.setItem(NICKNAME_ITEM, '');
+	}, []);
+
+	const copyRoomHandler = React.useCallback((): void => {
+		navigator.clipboard
+			.writeText(CREATE_ROOM_ID)
+			.then(() => {
+				eventBusTriggers.triggerNotifications({
+					id: v4(),
+					text: 'Я знаю что у тебя нет друзей, но номер комнаты скопирован',
+				});
+			})
+			.catch(() => {
+				eventBusTriggers.triggerNotifications({
+					id: v4(),
+					text: 'Видимо браузер у тебя говнище',
+				});
+			});
+	}, []);
+
+	const goToGameHandler = React.useCallback((): void => {
+		const roomIdValue = (refRoomId.current?.value || '').trim();
+		if (roomIdValue?.length !== CREATE_ROOM_ID.length)
+			return eventBusTriggers.triggerNotifications({
+				id: v4(),
+				text: 'Не валидный номер комнаты',
+			});
+
+		goToRoom(roomIdValue);
+	}, [goToRoom]);
+
+	const createGameHandler = React.useCallback(() => goToRoom(CREATE_ROOM_ID), [goToRoom]);
+
+	return (
+		<StyledStartWrapper>
+			<StyledStartPageWrapper>
+				<StyledChooseItem>
+					<h1>Подключиться к комнате</h1>
+					<input ref={refRoomId} type='text' placeholder='Давай сюда ее номер' />
+					<button type='button' onClick={goToGameHandler}>
+						го
+					</button>
+				</StyledChooseItem>
+				<StyledNicknameWrapper>
+					{!stateNickname && (
+						<>
+							<h1>Придумай ник</h1>
+							<input ref={refNickname} type='text' />
+							<button type='button' onClick={saveNicknameHandler}>
+								Сохранить
+							</button>
+						</>
+					)}
+					{!!stateNickname && (
+						<>
+							<h1>Йооо {stateNickname}</h1>
+							<button type='button' onClick={changeNicknameHandler}>
+								Изменить
+							</button>
+						</>
+					)}
+				</StyledNicknameWrapper>
+				<StyledChooseItem>
+					<h1>Создать комнату</h1>
+					<button type='button' onClick={copyRoomHandler}>
+						код для друга
+					</button>
+					<button type='button' onClick={createGameHandler}>
+						создать
+					</button>
+				</StyledChooseItem>
+			</StyledStartPageWrapper>
+		</StyledStartWrapper>
+	);
+};
+
+const StartPage: React.FC = () => (
+	<SceneIgniterContextProvider>
+		<StartPageUi />
+	</SceneIgniterContextProvider>
+);
+
+export default StartPage;

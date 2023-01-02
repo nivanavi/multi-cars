@@ -3,8 +3,8 @@ import { eventBusSubscriptions } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
 
 const CAMERA_OPTIONS = {
-	maxRotateY: Math.PI / 2,
-	maxZoom: 20,
+	maxRotateY: Math.PI / 2.5,
+	maxZoom: 50,
 	minZoom: 5,
 	moveSenseDivider: 300,
 	rotateX: 0,
@@ -17,13 +17,16 @@ const CAMERA_OPTIONS = {
  */
 const getRotateY = (diffRotate: number): number => {
 	const requestRotate = CAMERA_OPTIONS.rotateY + changeNumberSign(diffRotate) / CAMERA_OPTIONS.moveSenseDivider;
-	if (requestRotate > 0) return CAMERA_OPTIONS.rotateY;
+	// if (requestRotate > 0) return CAMERA_OPTIONS.rotateY;
 	if (Math.abs(requestRotate) > CAMERA_OPTIONS.maxRotateY) return CAMERA_OPTIONS.rotateY;
 	return requestRotate;
 };
 const getRotateX = (diffRotate: number): number =>
 	CAMERA_OPTIONS.rotateX + changeNumberSign(diffRotate) / CAMERA_OPTIONS.moveSenseDivider;
-export const setupCamera = (scene: THREE.Scene, watchCarId: string): { camera: THREE.PerspectiveCamera } => {
+export const setupCamera = (
+	scene: THREE.Scene,
+	watchCarId: string
+): { camera: THREE.PerspectiveCamera; destroy: () => void } => {
 	const camera = new THREE.PerspectiveCamera(50, 1, 1, 10000);
 
 	const cameraContainer = new THREE.Group();
@@ -57,32 +60,28 @@ export const setupCamera = (scene: THREE.Scene, watchCarId: string): { camera: T
 		window.removeEventListener('mouseup', cancelMoveCamera);
 	};
 
-	window.addEventListener('mousedown', () => {
+	const startMoveHandler = (): void => {
 		window.addEventListener('mousemove', moveCamera);
 		window.addEventListener('mouseup', cancelMoveCamera);
+	};
+
+	window.addEventListener('mousedown', startMoveHandler);
+
+	eventBusSubscriptions.subscribeOnResizeWithInit(({ height, width }) => {
+		camera.aspect = width / height;
+		camera.updateProjectionMatrix();
 	});
 
-	eventBusSubscriptions.subscribeOnResizeWithInit({
-		callback: ({ payload: { height, width } }) => {
-			camera.aspect = width / height;
-			camera.updateProjectionMatrix();
-		},
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+		const position = new THREE.Vector3().setFromMatrixPosition(cameraMesh.matrixWorld);
+		camera.position.set(position.x, position.y, position.z);
+		camera.lookAt(CAMERA_OPTIONS.lookAtPosition);
+		cameraContainer.position.copy(CAMERA_OPTIONS.lookAtPosition);
 	});
 
-	eventBusSubscriptions.subscribeOnTickPhysic({
-		callback: () => {
-			const position = new THREE.Vector3().setFromMatrixPosition(cameraMesh.matrixWorld);
-			camera.position.set(position.x, position.y, position.z);
-			camera.lookAt(CAMERA_OPTIONS.lookAtPosition);
-			cameraContainer.position.copy(CAMERA_OPTIONS.lookAtPosition);
-		},
-	});
-
-	eventBusSubscriptions.subscribeOnCarMove({
-		callback: ({ payload: { id, chassis } }) => {
-			if (id === watchCarId && chassis)
-				CAMERA_OPTIONS.lookAtPosition.set(chassis.position.x, chassis.position.y, chassis.position.z);
-		},
+	eventBusSubscriptions.subscribeOnCarMove(({ id, chassis }) => {
+		if (id === watchCarId && chassis)
+			CAMERA_OPTIONS.lookAtPosition.set(chassis.position.x, chassis.position.y, chassis.position.z);
 	});
 
 	const wheelEventHandler: (ev: WheelEvent) => void = ev => {
@@ -95,5 +94,10 @@ export const setupCamera = (scene: THREE.Scene, watchCarId: string): { camera: T
 
 	return {
 		camera,
+		destroy: (): void => {
+			window.removeEventListener('mousedown', startMoveHandler);
+			window.removeEventListener('wheel', wheelEventHandler);
+			cancelMoveCamera();
+		},
 	};
 };

@@ -1,5 +1,6 @@
 import * as CANNON from 'cannon-es';
 import * as THREE from 'three';
+import { Car } from '../../game/carGraphics';
 
 /**
  * Меняет знак числа на противоположный
@@ -58,3 +59,15 @@ const decToHex = (value: number): string => {
  * Переводит rgb в hex т.к three че то с этим не справляется принимает только целые числа
  */
 export const rgbToHex = (r: number, g: number, b: number): string => `#${decToHex(r)}${decToHex(g)}${decToHex(b)}`;
+
+export const NICKNAME_ITEM = 'nickname';
+/**
+ * Получает никнейм пользователя из local storage
+ */
+export const getNickname = (): string | undefined => localStorage.getItem(NICKNAME_ITEM) || undefined;
+
+export const CAR_ITEM = 'car';
+/**
+ * Получает тип выбранной машины из local storage
+ */
+export const getCarType = (): Car => (localStorage.getItem(CAR_ITEM) as Car) || Car.ELEANOR;
