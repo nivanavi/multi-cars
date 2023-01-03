@@ -15,7 +15,7 @@ import { carPhysicEmulator } from '../../game/carPhysicsEmulator';
 import { setupCarControl } from '../../game/carControl';
 import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
-import { setupWebsocket } from '../../websocket';
+import { GeneralMessageProps, setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/cameras';
 import { getCarType, getNickname } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
@@ -54,31 +54,31 @@ const setupGame = (
 	}
 	const { camera, destroy: destroyCamera } = setupCamera(scene, ROOT_CAR_ID);
 
-	const { chassis, updateSpecs } = carPhysicEmulator({
+	const { chassis, update } = carPhysicEmulator({
 		type: CAR_TYPE,
 		scene,
 		physicWorld,
 		id: ROOT_CAR_ID,
 	});
-	const { destroy: destroyCarControl } = setupCarControl(chassis, updateSpecs);
+	const { destroy: destroyCarControl } = setupCarControl(chassis, update);
 	const deleteCarHandler = (id: string): void => {
 		CARS_ON_MAP.get(id)?.delete();
 		CARS_ON_MAP.delete(id);
 	};
 
-	const updateCarHandler = (data: { id: string } & CarMoveSpecs): void => {
-		if (!CARS_ON_MAP.get(data.id))
+	const updateCarHandler = (data: GeneralMessageProps & CarMoveSpecs): void => {
+		if (!CARS_ON_MAP.get(data.carId))
 			CARS_ON_MAP.set(
-				data.id,
+				data.carId,
 				carPhysicEmulator({
 					physicWorld,
 					type: data.type || CAR_TYPE,
-					id: data.id,
+					id: data.carId,
 					isNotTriggerEvent: true,
 					scene,
 				})
 			);
-		CARS_ON_MAP.get(data.id)?.updateSpecs(data);
+		CARS_ON_MAP.get(data.carId)?.update(data);
 	};
 
 	setupFloor(scene, physicWorld);
@@ -96,11 +96,6 @@ const setupGame = (
 		onCarUpdate: updateCarHandler,
 		onBallMove: updateBallSpecs,
 	});
-
-	const testBoxG = new THREE.BoxGeometry(20, 20, 20);
-	const testBoxM = new THREE.MeshStandardMaterial({ color: 'red' });
-	const testBox = new THREE.Mesh(testBoxG, testBoxM);
-	scene.add(testBox);
 
 	return {
 		destroy: (): void => {

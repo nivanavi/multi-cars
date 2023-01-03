@@ -88,7 +88,7 @@ export const carPhysicEmulator = (
 ): {
 	delete: () => void;
 	chassis: CANNON.Body;
-	updateSpecs: (specs: CarMoveSpecs) => void;
+	update: (specs: CarMoveSpecs) => void;
 } => {
 	const { id, physicWorld, isNotTriggerEvent, scene, type } = props;
 	let CAR_SPECS: CarMoveSpecs | null = null;
@@ -218,7 +218,7 @@ export const carPhysicEmulator = (
 
 	return {
 		chassis: chassisBody,
-		updateSpecs: (specs): void => {
+		update: (specs): void => {
 			CAR_SPECS = specs;
 		},
 		delete: deleteHandler,

@@ -2,12 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 } from 'uuid';
 import * as THREE from 'three';
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
-import { TTFLoader } from 'three/examples/jsm/loaders/TTFLoader';
 import { StyledChooseItem, StyledNicknameWrapper, StyledStartPageWrapper, StyledStartWrapper } from './styles';
 import { eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
-import { CAR_ITEM, getCarType, getNickname, NICKNAME_ITEM } from '../../libs/utils';
+import { CAR_ITEM, createText, getCarType, getNickname, NICKNAME_ITEM } from '../../libs/utils';
 import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
 import { setupRenderer } from '../../libs/renderer';
 import { Car, setupCarGraphics } from '../../game/carGraphics';
@@ -139,42 +136,35 @@ const setupStartScene = (
 		lightsSettings.isStart = true;
 	}, 500);
 
-	const fontLoader = new FontLoader();
-	const ttfLoader = new TTFLoader();
-
-	ttfLoader.load('fonts/JetBrainsMono-Regular.ttf', jetFont => {
-		const jetFontParse = fontLoader.parse(jetFont);
-		const nicknameGeometry = new TextGeometry(nickname.toUpperCase(), {
-			size: 0.8,
-			height: 0.2,
-			// curveSegments: 8,
-			font: jetFontParse,
-		});
-		const nicknameMaterial = new THREE.MeshStandardMaterial({ color: '#5b3197' });
-		const nicknameMesh = new THREE.Mesh(nicknameGeometry, nicknameMaterial);
-		nicknameMesh.position.set(14.5, 1, nickname.length / 3);
-		nicknameMesh.rotation.y = Math.PI / 2;
-		nicknameMesh.castShadow = true;
-		nicknameMesh.receiveShadow = true;
-		scene.add(nicknameMesh);
-
-		//
-		// 	const creatorGeometry = new TextGeometry('Created by nivanavi', {
-		// 		size: 5,
-		// 		height: 1.5,
-		// 		// curveSegments: 8,
-		// 		font: jetFontParse,
-		// 	});
-		// 	const creatorMaterial = new THREE.MeshStandardMaterial({ color: '#1f0097' });
-		// 	const creatorMesh = new THREE.Mesh(creatorGeometry, creatorMaterial);
-		// 	creatorMesh.rotation.x = -Math.PI / 3;
-		// 	// creatorMesh.position.x = -nickname.length;
-		// 	creatorMesh.position.set(-45, -12.5, 20);
-		// 	// creatorMesh.position.y = 0;
-		// 	creatorMesh.castShadow = true;
-		// 	creatorMesh.receiveShadow = true;
-		// 	scene.add(creatorMesh);
+	createText({
+		text: nickname.toUpperCase(),
+		color: new THREE.Color('#5b3197'),
+		size: 0.8,
+		callback: nicknameMesh => {
+			nicknameMesh.position.set(14.5, 1, nickname.length / 3);
+			nicknameMesh.rotation.y = Math.PI / 2;
+			nicknameMesh.castShadow = true;
+			nicknameMesh.receiveShadow = true;
+			scene.add(nicknameMesh);
+		},
 	});
+
+	//
+	// 	const creatorGeometry = new TextGeometry('Created by nivanavi', {
+	// 		size: 5,
+	// 		height: 1.5,
+	// 		// curveSegments: 8,
+	// 		font: jetFontParse,
+	// 	});
+	// 	const creatorMaterial = new THREE.MeshStandardMaterial({ color: '#1f0097' });
+	// 	const creatorMesh = new THREE.Mesh(creatorGeometry, creatorMaterial);
+	// 	creatorMesh.rotation.x = -Math.PI / 3;
+	// 	// creatorMesh.position.x = -nickname.length;
+	// 	creatorMesh.position.set(-45, -12.5, 20);
+	// 	// creatorMesh.position.y = 0;
+	// 	creatorMesh.castShadow = true;
+	// 	creatorMesh.receiveShadow = true;
+	// 	scene.add(creatorMesh);
 
 	// update things
 	eventBusSubscriptions.subscribeOnTick(({ time }) => {

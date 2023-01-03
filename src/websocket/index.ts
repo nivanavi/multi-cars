@@ -2,7 +2,7 @@ import { v4 } from 'uuid';
 import { isJsonString } from '../libs/utils';
 import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../eventBus';
 
-type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
+export type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
 type WebsocketMessages =
 	| {
 			action: 'CAR_MOVE';
@@ -19,7 +19,7 @@ type WebsocketProps = {
 	nickname: string;
 	roomId: string;
 	onCarDelete: (id: string) => void;
-	onCarUpdate: (data: { id: string } & CarMoveSpecs) => void;
+	onCarUpdate: (data: GeneralMessageProps & CarMoveSpecs) => void;
 	onBallMove: (data: BallMoveSpecs) => void;
 };
 
@@ -55,7 +55,6 @@ export const setupWebsocket = (
 				brake,
 				carId: id,
 				roomId,
-				nickname,
 			},
 		});
 	});
@@ -92,10 +91,7 @@ export const setupWebsocket = (
 				onCarDelete(data.payload.carId);
 				break;
 			case 'CAR_MOVE':
-				onCarUpdate({
-					...data.payload,
-					id: data.payload.carId,
-				});
+				onCarUpdate(data.payload);
 				break;
 			case 'BALL_MOVE':
 				if (data.payload.carId === rootCarId) return;

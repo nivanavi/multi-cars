@@ -20,7 +20,7 @@ export const setupWater = (scene: THREE.Scene): void => {
 	});
 
 	eventBusSubscriptions.subscribeOnTick(({ time }) => {
-		waterMaterial.uniforms.uTime.value = time * 3;
+		waterMaterial.uniforms.uTime.value = time * 2;
 	});
 
 	const waterContainer = new THREE.Group();

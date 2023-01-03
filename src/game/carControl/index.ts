@@ -39,6 +39,14 @@ const CAR_SETTINGS = {
 	 */
 	prevPosition: new CANNON.Vec3(),
 	/**
+	 * когда пробовал последний раз встать на колеса
+	 */
+	prevRespawnTime: 0,
+	/**
+	 * когда пробовал последний раз встать на колеса
+	 */
+	respawnCooldown: 1500,
+	/**
 	 * флаг бернаута
 	 */
 	isBurnOut: false,
@@ -189,10 +197,10 @@ export const setupCarControl = (
 	};
 
 	const respawnHandler = (): void => {
-		// const { x, y, z } = chassis.position;
-		// chassis.position.set(x, y + 2, z);
-		// chassis.quaternion.set(-1, 0, 0, Math.PI / 2);
-		console.log(chassis.quaternion);
+		const currentTime = Date.now();
+		if (currentTime < CAR_SETTINGS.prevRespawnTime + CAR_SETTINGS.respawnCooldown) return;
+		CAR_SETTINGS.prevRespawnTime = currentTime;
+		chassis.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
 	};
 
 	eventBusSubscriptions.subscribeOnTickPhysic(() => {
@@ -228,18 +236,17 @@ export const setupCarControl = (
 	// todo интерфейс создания комнаты | done
 	// todo интерфейс отправки ссылки другу | done
 	// todo на превью машинка на подиуме | done
-	// todo ники игроков над машинкой
-	// todo фикс камеры внутри объектов
+	// todo respawn | done
+	// todo фикс камеры внутри объектов (дело в значении sides у материала из блендера выгружается не равное 0)
 	// todo звуки
-	// todo respawn
-	// todo синхоронизированный мяч для катания с режимом сна
+	// todo синхоронизированный мяч для катания с режимом сна (подумать над синхронизацией раз в сек или больше)
 
 	/** мапа
 	 * звезды на небе | done
 	 * смена дня и ночи | done
-	 * тени в зависимости от положения солнца
+	 * тени в зависимости от положения солнца | done
 	 * карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями | done
-	 *
+	 * наполнение карты деревья дома etc
 	 * пасхалки ?
 	 *
 	 */

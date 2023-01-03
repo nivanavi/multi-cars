@@ -17,7 +17,7 @@ const CAMERA_OPTIONS = {
  */
 const getRotateY = (diffRotate: number): number => {
 	const requestRotate = CAMERA_OPTIONS.rotateY + changeNumberSign(diffRotate) / CAMERA_OPTIONS.moveSenseDivider;
-	// if (requestRotate > 0) return CAMERA_OPTIONS.rotateY;
+	if (requestRotate > 0) return CAMERA_OPTIONS.rotateY;
 	if (Math.abs(requestRotate) > CAMERA_OPTIONS.maxRotateY) return CAMERA_OPTIONS.rotateY;
 	return requestRotate;
 };
