@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TTFLoader } from 'three/examples/jsm/loaders/TTFLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
+import { v4 } from 'uuid';
 import { Car } from '../../game/carGraphics';
 
 /**
@@ -73,7 +74,7 @@ export const getCarType = (): Car => (localStorage.getItem(CAR_ITEM) as Car) || 
 /**
  * Возвращает uuid
  */
-export const uuid = (): string => crypto.randomUUID();
+export const uuid = (): string => v4();
 
 type CreateTextCmd = {
 	text: string;
