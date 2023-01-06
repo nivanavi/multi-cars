@@ -12,7 +12,6 @@ const CAMERA_OPTIONS = {
 	prevTouchRotateX: 0,
 	prevTouchRotateY: 0,
 	prevTouchScaleDistance: 0,
-	isTouchScale: false,
 	lookAtPosition: new THREE.Vector3(0, 0, 0),
 };
 
@@ -106,33 +105,33 @@ export const setupCamera = (
 	const touchStartHandler = (ev: TouchEvent): void => {
 		const firstTouch = ev.touches[0];
 		const secondTouch = ev.touches[1];
+		if (firstTouch && secondTouch) return;
 		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
 		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
-
-		if (firstTouch && secondTouch) CAMERA_OPTIONS.isTouchScale = true;
 	};
 	const touchMoveHandler = (ev: TouchEvent): void => {
 		const firstTouch = ev.touches[0];
 		const secondTouch = ev.touches[1];
+
+		if (firstTouch && secondTouch) {
+			const dist = Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY);
+
+			if (dist < CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(0.2);
+			if (dist > CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(-0.2);
+
+			CAMERA_OPTIONS.prevTouchScaleDistance = dist;
+			return;
+		}
+
 		moveCamera(
 			firstTouch.clientX - CAMERA_OPTIONS.prevTouchRotateX,
 			firstTouch.clientY - CAMERA_OPTIONS.prevTouchRotateY
 		);
 		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
 		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
-
-		if (!CAMERA_OPTIONS.isTouchScale) return;
-
-		const dist = Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY);
-
-		if (dist < CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(0.2);
-		if (dist > CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(-0.2);
-
-		CAMERA_OPTIONS.prevTouchScaleDistance = dist;
 	};
 
 	const touchEndHandler = (): void => {
-		CAMERA_OPTIONS.isTouchScale = false;
 		CAMERA_OPTIONS.prevTouchScaleDistance = 0;
 	};
 

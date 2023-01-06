@@ -104,3 +104,12 @@ export const createText = (props: CreateTextCmd): void => {
 		callback(textMesh);
 	});
 };
+
+/**
+ * Проверяет является ли устройство клиента мобильным
+ */
+export const checkIsMobile = (): boolean => {
+	const toMatch = [/Android/i, /webOS/i, /iPhone/i, /iPad/i, /iPod/i, /BlackBerry/i, /Windows Phone/i];
+
+	return toMatch.some(toMatchItem => navigator.userAgent.match(toMatchItem));
+};
