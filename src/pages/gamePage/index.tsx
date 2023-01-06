@@ -1,6 +1,5 @@
 import React from 'react';
 import * as THREE from 'three';
-import { v4 } from 'uuid';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import Stats from 'stats.js';
@@ -17,10 +16,8 @@ import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
 import { GeneralMessageProps, setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/cameras';
-import { getCarType, getNickname } from '../../libs/utils';
+import {getCarType, getNickname, uuid} from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
-
-const NICKNAME = getNickname();
 
 const setupGame = (
 	roomId: string,
@@ -30,7 +27,7 @@ const setupGame = (
 	destroy: () => void;
 } => {
 	const CAR_TYPE = getCarType();
-	const ROOT_CAR_ID = v4();
+	const ROOT_CAR_ID = uuid();
 	const CARS_ON_MAP = new Map<string, ReturnType<typeof carPhysicEmulator>>();
 	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'dev';
 
@@ -112,11 +109,12 @@ const MultiCar: React.FC = () => {
 	const { canvas } = useSceneIgniterContext();
 
 	React.useEffect(() => {
-		if (!NICKNAME || !roomId) return navigate('/');
+		const nickname = getNickname();
+		if (!nickname || !roomId) return navigate('/');
 		if (!canvas) return;
 		console.log('setup game');
 
-		const { destroy } = setupGame(roomId, NICKNAME, canvas);
+		const { destroy } = setupGame(roomId, nickname, canvas);
 
 		return () => {
 			destroy();

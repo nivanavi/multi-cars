@@ -1,5 +1,4 @@
-import { v4 } from 'uuid';
-import { isJsonString } from '../libs/utils';
+import {isJsonString, uuid} from '../libs/utils';
 import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../eventBus';
 
 export type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
@@ -79,13 +78,13 @@ export const setupWebsocket = (
 		switch (data.action) {
 			case 'CAR_CONNECTED':
 				eventBusTriggers.triggerNotifications({
-					id: v4(),
+					id: uuid(),
 					text: `Встречайте: ${data.payload.nickname || data.payload.carId}`,
 				});
 				break;
 			case 'CAR_DELETE':
 				eventBusTriggers.triggerNotifications({
-					id: v4(),
+					id: uuid(),
 					text: `К сожалению ${data.payload.nickname || data.payload.carId} позвала мама`,
 				});
 				onCarDelete(data.payload.carId);

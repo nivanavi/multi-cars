@@ -5,7 +5,6 @@ export const StyledStartWrapper = styled.div`
 	top: 0;
 	left: 0;
 	right: 0;
-	bottom: 0;
 
 	font-size: 18px;
 	color: white;
@@ -35,6 +34,7 @@ export const StyledStartPageWrapper = styled.div`
 	display: grid;
 	grid-template-columns: 1fr 1fr 1fr;
 	column-gap: 30px;
+	padding: 0 20px 0 20px;
 `;
 export const StyledChooseItem = styled.div`
 	font-family: JetBrains Mono, sans-serif;

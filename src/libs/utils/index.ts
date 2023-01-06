@@ -70,6 +70,10 @@ export const CAR_ITEM = 'car';
  * Получает тип выбранной машины из local storage
  */
 export const getCarType = (): Car => (localStorage.getItem(CAR_ITEM) as Car) || Car.ELEANOR;
+/**
+ * Возвращает uuid
+ */
+export const uuid = (): string => crypto.randomUUID();
 
 type CreateTextCmd = {
 	text: string;

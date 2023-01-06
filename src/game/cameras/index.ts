@@ -9,6 +9,10 @@ const CAMERA_OPTIONS = {
 	moveSenseDivider: 300,
 	rotateX: 0,
 	rotateY: 0,
+	prevTouchRotateX: 0,
+	prevTouchRotateY: 0,
+	prevTouchScaleDistance: 0,
+	isTouchScale: false,
 	lookAtPosition: new THREE.Vector3(0, 0, 0),
 };
 
@@ -41,9 +45,10 @@ export const setupCamera = (
 	cameraContainer.add(cameraMesh);
 
 	scene.add(cameraContainer);
-	const moveCamera = ({ movementY, movementX }: MouseEvent): void => {
-		const currentRotateX = getRotateX(movementX);
-		const currentRotateY = getRotateY(movementY);
+
+	const moveCamera = (x: number, y: number): void => {
+		const currentRotateX = getRotateX(x);
+		const currentRotateY = getRotateY(y);
 
 		const quaternionX = new THREE.Quaternion();
 		quaternionX.setFromAxisAngle(new THREE.Vector3(0, 1, 0), currentRotateX);
@@ -54,14 +59,17 @@ export const setupCamera = (
 		CAMERA_OPTIONS.rotateX = currentRotateX;
 		CAMERA_OPTIONS.rotateY = currentRotateY;
 	};
+	const mousemoveHandler = ({ movementY, movementX }: MouseEvent): void => {
+		moveCamera(movementX, movementY);
+	};
 
 	const cancelMoveCamera = (): void => {
-		window.removeEventListener('mousemove', moveCamera);
+		window.removeEventListener('mousemove', mousemoveHandler);
 		window.removeEventListener('mouseup', cancelMoveCamera);
 	};
 
 	const startMoveHandler = (): void => {
-		window.addEventListener('mousemove', moveCamera);
+		window.addEventListener('mousemove', mousemoveHandler);
 		window.addEventListener('mouseup', cancelMoveCamera);
 	};
 
@@ -84,19 +92,62 @@ export const setupCamera = (
 			CAMERA_OPTIONS.lookAtPosition.set(chassis.position.x, chassis.position.y, chassis.position.z);
 	});
 
+	const zoomCamera = (zoom: number): void => {
+		const nextZoom = cameraMesh.position.z + zoom;
+		if (nextZoom > CAMERA_OPTIONS.maxZoom || nextZoom < CAMERA_OPTIONS.minZoom) return;
+		cameraMesh.position.z = nextZoom;
+	};
 	const wheelEventHandler: (ev: WheelEvent) => void = ev => {
-		const requestZoom = cameraMesh.position.z + ev.deltaY * 0.01;
-		if (requestZoom > CAMERA_OPTIONS.maxZoom || requestZoom < CAMERA_OPTIONS.minZoom) return;
-		cameraMesh.position.z = requestZoom;
+		zoomCamera(ev.deltaY * 0.01);
 	};
 
 	window.addEventListener('wheel', wheelEventHandler);
+
+	const touchStartHandler = (ev: TouchEvent): void => {
+		const firstTouch = ev.touches[0];
+		const secondTouch = ev.touches[1];
+		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
+		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+
+		if (firstTouch && secondTouch) CAMERA_OPTIONS.isTouchScale = true;
+	};
+	const touchMoveHandler = (ev: TouchEvent): void => {
+		const firstTouch = ev.touches[0];
+		const secondTouch = ev.touches[1];
+		moveCamera(
+			firstTouch.clientX - CAMERA_OPTIONS.prevTouchRotateX,
+			firstTouch.clientY - CAMERA_OPTIONS.prevTouchRotateY
+		);
+		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
+		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+
+		if (!CAMERA_OPTIONS.isTouchScale) return;
+
+		const dist = Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY);
+
+		if (dist < CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(0.2);
+		if (dist > CAMERA_OPTIONS.prevTouchScaleDistance) zoomCamera(-0.2);
+
+		CAMERA_OPTIONS.prevTouchScaleDistance = dist;
+	};
+
+	const touchEndHandler = (): void => {
+		CAMERA_OPTIONS.isTouchScale = false;
+		CAMERA_OPTIONS.prevTouchScaleDistance = 0;
+	};
+
+	window.addEventListener('touchmove', touchMoveHandler);
+	window.addEventListener('touchstart', touchStartHandler);
+	window.addEventListener('touchend', touchEndHandler);
 
 	return {
 		camera,
 		destroy: (): void => {
 			window.removeEventListener('mousedown', startMoveHandler);
 			window.removeEventListener('wheel', wheelEventHandler);
+			window.removeEventListener('touchmove', touchMoveHandler);
+			window.removeEventListener('touchstart', touchStartHandler);
+			window.removeEventListener('touchend', touchEndHandler);
 			cancelMoveCamera();
 		},
 	};

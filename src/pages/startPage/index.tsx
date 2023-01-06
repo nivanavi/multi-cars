@@ -1,15 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { v4 } from 'uuid';
 import * as THREE from 'three';
 import { StyledChooseItem, StyledNicknameWrapper, StyledStartPageWrapper, StyledStartWrapper } from './styles';
 import { eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
-import { CAR_ITEM, createText, getCarType, getNickname, NICKNAME_ITEM } from '../../libs/utils';
+import { CAR_ITEM, createText, getCarType, getNickname, NICKNAME_ITEM, uuid } from '../../libs/utils';
 import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
 import { setupRenderer } from '../../libs/renderer';
 import { Car, setupCarGraphics } from '../../game/carGraphics';
 
-const CREATE_ROOM_ID = v4();
+const CREATE_ROOM_ID = uuid();
 const NICKNAME = getNickname();
 
 const defaultCarSpecs =
@@ -190,26 +189,35 @@ const setupStartScene = (
 		podiumsContainer.rotation.y = podiumSettings.currentRotation;
 	});
 
+	const changeCarHandler = (direction: 'prev' | 'next'): void => {
+		if (direction === 'prev') {
+			podiumSettings.selectedRotation += podiumSettings.selectStep;
+
+			if (podiumSettings.selectedIndex + 1 > CARS_TO_CHOOSE.length - 1) {
+				podiumSettings.selectedIndex = 0;
+				return;
+			}
+			podiumSettings.selectedIndex += 1;
+		}
+		if (direction === 'next') {
+			podiumSettings.selectedRotation -= podiumSettings.selectStep;
+
+			if (podiumSettings.selectedIndex - 1 < 0) {
+				podiumSettings.selectedIndex = CARS_TO_CHOOSE.length - 1;
+				return;
+			}
+			podiumSettings.selectedIndex -= 1;
+		}
+	};
+
 	const keyPressHandler = (ev: KeyboardEvent): void => {
 		if (ev.repeat) return;
 		switch (ev.code) {
 			case 'ArrowLeft':
-				podiumSettings.selectedRotation += podiumSettings.selectStep;
-
-				if (podiumSettings.selectedIndex + 1 > CARS_TO_CHOOSE.length - 1) {
-					podiumSettings.selectedIndex = 0;
-					break;
-				}
-				podiumSettings.selectedIndex += 1;
+				changeCarHandler('prev');
 				break;
 			case 'ArrowRight':
-				podiumSettings.selectedRotation -= podiumSettings.selectStep;
-
-				if (podiumSettings.selectedIndex - 1 < 0) {
-					podiumSettings.selectedIndex = CARS_TO_CHOOSE.length - 1;
-					break;
-				}
-				podiumSettings.selectedIndex -= 1;
+				changeCarHandler('next');
 				break;
 			default:
 				break;
@@ -218,13 +226,21 @@ const setupStartScene = (
 		localStorage.setItem(CAR_ITEM, CARS_TO_CHOOSE[podiumSettings.selectedIndex] || Car.ELEANOR);
 	};
 
+	const touchEventHandler = (ev: TouchEvent): void => {
+		const isLeftHalf = ev.touches[0].clientX < window.innerWidth / 2;
+		if (isLeftHalf) return changeCarHandler('prev');
+		changeCarHandler('next');
+	};
+
 	window.addEventListener('keydown', keyPressHandler);
+	canvas.addEventListener('touchstart', touchEventHandler);
 
 	return {
 		destroy: (): void => {
 			renderer.dispose();
 			scene.remove(podiumsContainer, pointLight, ambientLight, planeMesh, lightContainer);
 			window.removeEventListener('keydown', keyPressHandler);
+			canvas.removeEventListener('touchstart', touchEventHandler);
 		},
 	};
 };
@@ -250,7 +266,7 @@ const StartPageUi: React.FC = () => {
 		(room: string): void => {
 			if (!localStorage.getItem(NICKNAME_ITEM))
 				return eventBusTriggers.triggerNotifications({
-					id: v4(),
+					id: uuid(),
 					text: 'Сначала придумайте себе никнейм',
 				});
 			navigate(`/room/${room}`);
@@ -262,7 +278,7 @@ const StartPageUi: React.FC = () => {
 		const nicknameValue = (refNickname.current?.value || '').trim();
 		if (!nicknameValue.length)
 			return eventBusTriggers.triggerNotifications({
-				id: v4(),
+				id: uuid(),
 				text: 'Не валидный никнейм',
 			});
 
@@ -280,13 +296,13 @@ const StartPageUi: React.FC = () => {
 			.writeText(CREATE_ROOM_ID)
 			.then(() => {
 				eventBusTriggers.triggerNotifications({
-					id: v4(),
+					id: uuid(),
 					text: 'Я знаю что у тебя нет друзей, но номер комнаты скопирован',
 				});
 			})
 			.catch(() => {
 				eventBusTriggers.triggerNotifications({
-					id: v4(),
+					id: uuid(),
 					text: 'Видимо браузер у тебя говнище',
 				});
 			});
@@ -296,7 +312,7 @@ const StartPageUi: React.FC = () => {
 		const roomIdValue = (refRoomId.current?.value || '').trim();
 		if (roomIdValue?.length !== CREATE_ROOM_ID.length)
 			return eventBusTriggers.triggerNotifications({
-				id: v4(),
+				id: uuid(),
 				text: 'Не валидный номер комнаты',
 			});
 
