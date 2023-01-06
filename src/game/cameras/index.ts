@@ -97,19 +97,20 @@ export const setupCamera = (
 		cameraMesh.position.z = nextZoom;
 	};
 	const wheelEventHandler: (ev: WheelEvent) => void = ev => {
+		ev.preventDefault();
 		zoomCamera(ev.deltaY * 0.01);
 	};
 
-	window.addEventListener('wheel', wheelEventHandler);
+	window.addEventListener('wheel', wheelEventHandler, { passive: false });
 
 	const touchStartHandler = (ev: TouchEvent): void => {
 		const firstTouch = ev.touches[0];
-		const secondTouch = ev.touches[1];
-		if (firstTouch && secondTouch) return;
 		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
 		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
 	};
 	const touchMoveHandler = (ev: TouchEvent): void => {
+		ev.preventDefault();
+
 		const firstTouch = ev.touches[0];
 		const secondTouch = ev.touches[1];
 
@@ -135,7 +136,7 @@ export const setupCamera = (
 		CAMERA_OPTIONS.prevTouchScaleDistance = 0;
 	};
 
-	window.addEventListener('touchmove', touchMoveHandler);
+	window.addEventListener('touchmove', touchMoveHandler, { passive: false });
 	window.addEventListener('touchstart', touchStartHandler);
 	window.addEventListener('touchend', touchEndHandler);
 
