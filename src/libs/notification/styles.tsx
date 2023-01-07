@@ -30,6 +30,11 @@ export const StyledNotificationsWrapper = styled.div<{ animationTimeout: number 
 		opacity: 0.1;
 		transition: ${(props): string => `all ${props.animationTimeout}s ease-in-out`};
 	}
+
+	@media (max-width: 1024px) {
+		right: 2rem;
+		bottom: 2rem;
+	}
 `;
 
 export const StyledNotification = styled.div`
@@ -42,4 +47,10 @@ export const StyledNotification = styled.div`
 	font-family: JetBrains Mono, sans-serif;
 	color: white;
 	background: rgba(173, 173, 173, 0.5);
+
+	@media (max-width: 1024px) {
+		font-size: 14px;
+		line-height: 14px;
+		padding: 5px;
+	}
 `;

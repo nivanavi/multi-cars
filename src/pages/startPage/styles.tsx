@@ -1,11 +1,6 @@
 import styled from 'styled-components';
 
 export const StyledStartWrapper = styled.div`
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-
 	font-size: 18px;
 	color: white;
 	button {
@@ -28,39 +23,55 @@ export const StyledStartWrapper = styled.div`
 		padding: 10px;
 		margin: 30px 0 30px 0;
 	}
+
+	@media (max-width: 1024px) {
+		font-size: 12px;
+
+		button {
+			padding: 5px 15px;
+			font-size: 12px;
+			margin: 10px 0 10px 0;
+		}
+
+		input {
+			font-size: 12px;
+			padding: 5px;
+			margin: 15px 0 15px 0;
+		}
+	}
 `;
 
 export const StyledStartPageWrapper = styled.div`
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
 	display: grid;
 	grid-template-columns: 1fr 1fr 1fr;
-	column-gap: 30px;
 	padding: 0 20px 0 20px;
+
+	@media (max-width: 1024px) {
+		display: unset;
+		right: unset;
+	}
 `;
 export const StyledChooseItem = styled.div`
 	font-family: JetBrains Mono, sans-serif;
 	display: flex;
-	justify-content: center;
 	align-items: center;
+	justify-content: center;
 	button {
-		margin-left: 20px;
+		margin-right: 20px;
 		width: fit-content;
 	}
-	input {
-		margin-left: 20px;
+	h1 {
+		margin-right: 20px;
 	}
-`;
+	input {
+		margin-right: 20px;
+	}
 
-export const StyledNicknameWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-family: JetBrains Mono, sans-serif;
-	input {
-		margin-left: 20px;
-	}
-	button {
-		margin-left: 20px;
-		width: fit-content;
+	@media (max-width: 1024px) {
+		justify-content: flex-start;
 	}
 `;

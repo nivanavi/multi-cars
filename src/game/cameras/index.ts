@@ -72,8 +72,6 @@ export const setupCamera = (
 		window.addEventListener('mouseup', cancelMoveCamera);
 	};
 
-	window.addEventListener('mousedown', startMoveHandler);
-
 	eventBusSubscriptions.subscribeOnResizeWithInit(({ height, width }) => {
 		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
@@ -101,13 +99,11 @@ export const setupCamera = (
 		zoomCamera(ev.deltaY * 0.01);
 	};
 
-	window.addEventListener('wheel', wheelEventHandler, { passive: false });
-
-	const touchStartHandler = (ev: TouchEvent): void => {
-		const firstTouch = ev.touches[0];
-		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
-		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
-	};
+	// const touchStartHandler = (ev: TouchEvent): void => {
+	// 	// const firstTouch = ev.touches[0];
+	// 	// CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
+	// 	// CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+	// };
 	const touchMoveHandler = (ev: TouchEvent): void => {
 		ev.preventDefault();
 
@@ -124,6 +120,11 @@ export const setupCamera = (
 			return;
 		}
 
+		if (!CAMERA_OPTIONS.prevTouchRotateY || !CAMERA_OPTIONS.prevTouchRotateX) {
+			CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
+			CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+		}
+
 		moveCamera(
 			firstTouch.clientX - CAMERA_OPTIONS.prevTouchRotateX,
 			firstTouch.clientY - CAMERA_OPTIONS.prevTouchRotateY
@@ -134,10 +135,15 @@ export const setupCamera = (
 
 	const touchEndHandler = (): void => {
 		CAMERA_OPTIONS.prevTouchScaleDistance = 0;
+		CAMERA_OPTIONS.prevTouchRotateY = 0;
+		CAMERA_OPTIONS.prevTouchRotateX = 0;
 	};
 
+	window.addEventListener('mousedown', startMoveHandler);
+	window.addEventListener('wheel', wheelEventHandler, { passive: false });
+
 	window.addEventListener('touchmove', touchMoveHandler, { passive: false });
-	window.addEventListener('touchstart', touchStartHandler);
+	// window.addEventListener('touchstart', touchStartHandler);
 	window.addEventListener('touchend', touchEndHandler);
 
 	return {
@@ -146,7 +152,7 @@ export const setupCamera = (
 			window.removeEventListener('mousedown', startMoveHandler);
 			window.removeEventListener('wheel', wheelEventHandler);
 			window.removeEventListener('touchmove', touchMoveHandler);
-			window.removeEventListener('touchstart', touchStartHandler);
+			// window.removeEventListener('touchstart', touchStartHandler);
 			window.removeEventListener('touchend', touchEndHandler);
 			cancelMoveCamera();
 		},

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
-import { StyledChooseItem, StyledNicknameWrapper, StyledStartPageWrapper, StyledStartWrapper } from './styles';
+import { StyledChooseItem, StyledStartPageWrapper, StyledStartWrapper } from './styles';
 import { eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
 import { CAR_ITEM, createText, getCarType, getNickname, NICKNAME_ITEM, uuid } from '../../libs/utils';
 import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
@@ -214,9 +214,11 @@ const setupStartScene = (
 		if (ev.repeat) return;
 		switch (ev.code) {
 			case 'ArrowLeft':
+			case 'KeyA':
 				changeCarHandler('prev');
 				break;
 			case 'ArrowRight':
+			case 'KeyD':
 				changeCarHandler('next');
 				break;
 			default:
@@ -325,16 +327,15 @@ const StartPageUi: React.FC = () => {
 		<StyledStartWrapper>
 			<StyledStartPageWrapper>
 				<StyledChooseItem>
-					<h1>Подключиться к комнате</h1>
-					<input ref={refRoomId} type='text' placeholder='Давай сюда ее номер' />
+					<input ref={refRoomId} type='text' placeholder='Номер комнаты' />
 					<button type='button' onClick={goToGameHandler}>
-						го
+						подключиться
 					</button>
 				</StyledChooseItem>
-				<StyledNicknameWrapper>
+				<StyledChooseItem>
 					{!stateNickname && (
 						<>
-							<h1>Придумай ник</h1>
+							<h1>Никнейм</h1>
 							<input ref={refNickname} type='text' />
 							<button type='button' onClick={saveNicknameHandler}>
 								Сохранить
@@ -349,14 +350,13 @@ const StartPageUi: React.FC = () => {
 							</button>
 						</>
 					)}
-				</StyledNicknameWrapper>
+				</StyledChooseItem>
 				<StyledChooseItem>
-					<h1>Создать комнату</h1>
 					<button type='button' onClick={copyRoomHandler}>
 						код для друга
 					</button>
 					<button type='button' onClick={createGameHandler}>
-						создать
+						cоздать комнату
 					</button>
 				</StyledChooseItem>
 			</StyledStartPageWrapper>
