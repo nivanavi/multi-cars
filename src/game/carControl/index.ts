@@ -78,6 +78,16 @@ const CAR_SETTINGS = {
 	boost: false,
 };
 
+export enum CarControlsIds {
+	FORWARD = 'FORWARD',
+	FORWARD_BOOST = 'FORWARD_BOOST',
+	REVERS = 'REVERS',
+	LEFT = 'LEFT',
+	RIGHT = 'RIGHT',
+	BRAKE = 'BRAKE',
+	RESPAWN = 'RESPAWN',
+}
+
 /**
  * функция осуществляющая рассчет характеристик машины исходя их действий пользователя
  */
@@ -244,9 +254,9 @@ export const setupCarControl = (
 	/** мобила
 	 * выбор машины создание ника... | done
 	 * поворот камерой | done
-	 * приближение и отдаление камеры | done (нужно избавиться от скачков камеры после зума)
-	 * управление машиной
+	 * приближение и отдаление камеры | done
 	 * адаптация верстки под мобилу | done
+	 * управление машиной
 	 */
 
 	/** мапа
@@ -254,9 +264,14 @@ export const setupCarControl = (
 	 * смена дня и ночи | done
 	 * тени в зависимости от положения солнца | done
 	 * карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями | done
-	 * наполнение карты деревья дома etc
+	 * наполнение карты деревья дома телепорты интерактив etc
 	 * пасхалки ?
-	 *
+	 */
+
+	/** интерфейс
+	 * кнопка возврата в меню из игры
+	 * фавиконка
+	 * мб динамческий тайтл
 	 */
 	const keyPressHandler = (ev: KeyboardEvent): void => {
 		if (ev.repeat) return;
@@ -289,6 +304,44 @@ export const setupCarControl = (
 		}
 	};
 
+	const touchPressHandler = (id: CarControlsIds, isPressed: boolean): void => {
+		switch (id) {
+			case CarControlsIds.FORWARD:
+				CAR_SETTINGS.up = isPressed;
+				break;
+			case CarControlsIds.LEFT:
+				CAR_SETTINGS.left = isPressed;
+				break;
+			case CarControlsIds.REVERS:
+				CAR_SETTINGS.down = isPressed;
+				break;
+			case CarControlsIds.RIGHT:
+				CAR_SETTINGS.right = isPressed;
+				break;
+			case CarControlsIds.BRAKE:
+				CAR_SETTINGS.brake = isPressed;
+				break;
+			case CarControlsIds.FORWARD_BOOST:
+				CAR_SETTINGS.up = isPressed;
+				CAR_SETTINGS.boost = isPressed;
+				break;
+			case CarControlsIds.RESPAWN:
+				if (!isPressed) return;
+				respawnHandler();
+				break;
+			default:
+				break;
+		}
+	};
+
+	const touchHandler = (ev: TouchEvent): void => {
+		ev.preventDefault();
+		const isPressed = ev.type === 'touchstart';
+		const id = (ev?.target as HTMLElement)?.id as CarControlsIds | undefined;
+		if (!id || !Object.keys(CarControlsIds).includes(id)) return;
+		touchPressHandler(id, isPressed);
+	};
+
 	const windowBlurHandler = (): void => {
 		CAR_SETTINGS.up = false;
 		CAR_SETTINGS.left = false;
@@ -298,12 +351,16 @@ export const setupCarControl = (
 		CAR_SETTINGS.boost = false;
 	};
 
+	window.addEventListener('touchstart', touchHandler, { passive: false });
+	window.addEventListener('touchend', touchHandler, { passive: false });
 	window.addEventListener('keydown', keyPressHandler);
 	window.addEventListener('keyup', keyPressHandler);
 	window.addEventListener('blur', windowBlurHandler);
 
 	return {
 		destroy: (): void => {
+			window.removeEventListener('touchstart', touchHandler);
+			window.removeEventListener('touchend', touchHandler);
 			window.removeEventListener('keydown', keyPressHandler);
 			window.removeEventListener('keyup', keyPressHandler);
 			window.removeEventListener('blur', windowBlurHandler);

@@ -11,13 +11,19 @@ import { setupFloor } from '../../game/floor';
 import CannonDebugRenderer from '../../libs/cannonDebug';
 import { setupPhysics } from '../../game/physics';
 import { carPhysicEmulator } from '../../game/carPhysicsEmulator';
-import { setupCarControl } from '../../game/carControl';
+import { CarControlsIds, setupCarControl } from '../../game/carControl';
 import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
 import { GeneralMessageProps, setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/cameras';
-import {getCarType, getNickname, uuid} from '../../libs/utils';
+import { checkIsMobile, getCarType, getNickname, uuid } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
+import {
+	StyledCarAcceleration,
+	StyledCarAccelerationForward,
+	StyledCarControlsWrapper,
+	StyledCarSteering,
+} from './styles';
 
 const setupGame = (
 	roomId: string,
@@ -128,6 +134,36 @@ const MultiCar: React.FC = () => {
 const GamePage: React.FC = () => (
 	<SceneIgniterContextProvider>
 		<MultiCar />
+		{checkIsMobile() && (
+			<StyledCarControlsWrapper>
+				<StyledCarSteering>
+					<button type='button' id={CarControlsIds.LEFT}>
+						left
+					</button>
+					<button type='button' id={CarControlsIds.RIGHT}>
+						right
+					</button>
+				</StyledCarSteering>
+				<StyledCarAcceleration>
+					<StyledCarAccelerationForward>
+						<button type='button' id={CarControlsIds.FORWARD}>
+							forward
+						</button>
+						<button type='button' id={CarControlsIds.FORWARD_BOOST}>
+							forward boost
+						</button>
+					</StyledCarAccelerationForward>
+					<StyledCarAccelerationForward>
+						<button type='button' id={CarControlsIds.REVERS}>
+							down
+						</button>
+						<button type='button' id={CarControlsIds.BRAKE}>
+							brake
+						</button>
+					</StyledCarAccelerationForward>
+				</StyledCarAcceleration>
+			</StyledCarControlsWrapper>
+		)}
 	</SceneIgniterContextProvider>
 );
 
