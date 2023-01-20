@@ -23,7 +23,11 @@ import {
 	StyledCarAccelerationForward,
 	StyledCarControlsWrapper,
 	StyledCarSteering,
+	StyledGamePageWrapper,
 } from './styles';
+import { ArrowIcon } from '../../icons/ArrowIcon';
+import { ArrowFastIcon } from '../../icons/ArrowFastIcon';
+import { BrakeIcon } from '../../icons/BrakeIcon';
 
 const setupGame = (
 	roomId: string,
@@ -42,7 +46,7 @@ const setupGame = (
 
 	const scene = new THREE.Scene();
 	// debug
-	if (IS_DEV_MODE) {
+	if (!IS_DEV_MODE) {
 		const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
 		const stats = new Stats();
 		stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -114,11 +118,12 @@ const MultiCar: React.FC = () => {
 	const navigate = useNavigate();
 	const { canvas } = useSceneIgniterContext();
 
+	const goHomePageHandler = React.useCallback(() => navigate('/'), [navigate]);
+
 	React.useEffect(() => {
 		const nickname = getNickname();
-		if (!nickname || !roomId) return navigate('/');
+		if (!nickname || !roomId) return goHomePageHandler();
 		if (!canvas) return;
-		console.log('setup game');
 
 		const { destroy } = setupGame(roomId, nickname, canvas);
 
@@ -126,45 +131,56 @@ const MultiCar: React.FC = () => {
 			destroy();
 			eventBusSubscriptions.unsubscribe(['ON_NOTIFICATION']);
 		};
-	}, [canvas, navigate, roomId]);
+	}, [canvas, goHomePageHandler, navigate, roomId]);
 
 	return null;
 };
 
-const GamePage: React.FC = () => (
-	<SceneIgniterContextProvider>
-		<MultiCar />
-		{checkIsMobile() && (
-			<StyledCarControlsWrapper>
-				<StyledCarSteering>
-					<button type='button' id={CarControlsIds.LEFT}>
-						left
-					</button>
-					<button type='button' id={CarControlsIds.RIGHT}>
-						right
-					</button>
-				</StyledCarSteering>
-				<StyledCarAcceleration>
-					<StyledCarAccelerationForward>
-						<button type='button' id={CarControlsIds.FORWARD}>
-							forward
-						</button>
-						<button type='button' id={CarControlsIds.FORWARD_BOOST}>
-							forward boost
-						</button>
-					</StyledCarAccelerationForward>
-					<StyledCarAccelerationForward>
-						<button type='button' id={CarControlsIds.REVERS}>
-							down
-						</button>
-						<button type='button' id={CarControlsIds.BRAKE}>
-							brake
-						</button>
-					</StyledCarAccelerationForward>
-				</StyledCarAcceleration>
-			</StyledCarControlsWrapper>
-		)}
-	</SceneIgniterContextProvider>
-);
+const GamePage: React.FC = () => {
+	const navigate = useNavigate();
+
+	const goHomePageHandler = React.useCallback(() => navigate('/'), [navigate]);
+
+	return (
+		<SceneIgniterContextProvider>
+			<StyledGamePageWrapper>
+				<button type='button' onClick={goHomePageHandler} className='backNavigate'>
+					<ArrowIcon direction='left' />
+				</button>
+				<MultiCar />
+				{checkIsMobile() && (
+					<StyledCarControlsWrapper>
+						<StyledCarSteering>
+							<button type='button' id={CarControlsIds.LEFT}>
+								<ArrowIcon direction='left' />
+							</button>
+							<button type='button' id={CarControlsIds.RIGHT}>
+								<ArrowIcon direction='right' />
+							</button>
+						</StyledCarSteering>
+						<StyledCarAcceleration>
+							<StyledCarAccelerationForward>
+								<button type='button' id={CarControlsIds.FORWARD}>
+									<ArrowIcon direction='up' />
+								</button>
+								<button type='button' id={CarControlsIds.FORWARD_BOOST}>
+									<ArrowFastIcon />
+								</button>
+							</StyledCarAccelerationForward>
+							<StyledCarAccelerationForward>
+								<button type='button' id={CarControlsIds.REVERS}>
+									<ArrowIcon direction='down' />
+								</button>
+								<button type='button' id={CarControlsIds.BRAKE}>
+									<BrakeIcon />
+								</button>
+							</StyledCarAccelerationForward>
+						</StyledCarAcceleration>
+					</StyledCarControlsWrapper>
+				)}
+			</StyledGamePageWrapper>
+		</SceneIgniterContextProvider>
+	);
+};
 
 export default GamePage;

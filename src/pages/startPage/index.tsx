@@ -148,23 +148,6 @@ const setupStartScene = (
 		},
 	});
 
-	//
-	// 	const creatorGeometry = new TextGeometry('Created by nivanavi', {
-	// 		size: 5,
-	// 		height: 1.5,
-	// 		// curveSegments: 8,
-	// 		font: jetFontParse,
-	// 	});
-	// 	const creatorMaterial = new THREE.MeshStandardMaterial({ color: '#1f0097' });
-	// 	const creatorMesh = new THREE.Mesh(creatorGeometry, creatorMaterial);
-	// 	creatorMesh.rotation.x = -Math.PI / 3;
-	// 	// creatorMesh.position.x = -nickname.length;
-	// 	creatorMesh.position.set(-45, -12.5, 20);
-	// 	// creatorMesh.position.y = 0;
-	// 	creatorMesh.castShadow = true;
-	// 	creatorMesh.receiveShadow = true;
-	// 	scene.add(creatorMesh);
-
 	// update things
 	eventBusSubscriptions.subscribeOnTick(({ time }) => {
 		const deltaTime = time - prevTime;
@@ -190,24 +173,30 @@ const setupStartScene = (
 	});
 
 	const changeCarHandler = (direction: 'prev' | 'next'): void => {
-		if (direction === 'prev') {
-			podiumSettings.selectedRotation += podiumSettings.selectStep;
+		switch (direction) {
+			case 'prev':
+				podiumSettings.selectedRotation += podiumSettings.selectStep;
 
-			if (podiumSettings.selectedIndex + 1 > CARS_TO_CHOOSE.length - 1) {
-				podiumSettings.selectedIndex = 0;
-				return;
-			}
-			podiumSettings.selectedIndex += 1;
-		}
-		if (direction === 'next') {
-			podiumSettings.selectedRotation -= podiumSettings.selectStep;
+				if (podiumSettings.selectedIndex + 1 > CARS_TO_CHOOSE.length - 1) {
+					podiumSettings.selectedIndex = 0;
+					break;
+				}
+				podiumSettings.selectedIndex += 1;
+				break;
+			case 'next':
+				podiumSettings.selectedRotation -= podiumSettings.selectStep;
 
-			if (podiumSettings.selectedIndex - 1 < 0) {
-				podiumSettings.selectedIndex = CARS_TO_CHOOSE.length - 1;
-				return;
-			}
-			podiumSettings.selectedIndex -= 1;
+				if (podiumSettings.selectedIndex - 1 < 0) {
+					podiumSettings.selectedIndex = CARS_TO_CHOOSE.length - 1;
+					break;
+				}
+				podiumSettings.selectedIndex -= 1;
+				break;
+			default:
+				break;
 		}
+
+		localStorage.setItem(CAR_ITEM, CARS_TO_CHOOSE[podiumSettings.selectedIndex] || Car.ELEANOR);
 	};
 
 	const keyPressHandler = (ev: KeyboardEvent): void => {
@@ -224,8 +213,6 @@ const setupStartScene = (
 			default:
 				break;
 		}
-
-		localStorage.setItem(CAR_ITEM, CARS_TO_CHOOSE[podiumSettings.selectedIndex] || Car.ELEANOR);
 	};
 
 	const touchEventHandler = (ev: TouchEvent): void => {

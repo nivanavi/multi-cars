@@ -335,10 +335,10 @@ export const setupCarControl = (
 	};
 
 	const touchHandler = (ev: TouchEvent): void => {
-		ev.preventDefault();
 		const isPressed = ev.type === 'touchstart';
 		const id = (ev?.target as HTMLElement)?.id as CarControlsIds | undefined;
 		if (!id || !Object.keys(CarControlsIds).includes(id)) return;
+		ev.preventDefault();
 		touchPressHandler(id, isPressed);
 	};
 
