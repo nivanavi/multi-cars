@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { eventBusSubscriptions } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
+import { CarControlsIds } from '../carControl';
 
 const CAMERA_OPTIONS = {
 	maxRotateY: Math.PI / 2.5,
@@ -99,12 +100,10 @@ export const setupCamera = (
 		zoomCamera(ev.deltaY * 0.01);
 	};
 
-	// const touchStartHandler = (ev: TouchEvent): void => {
-	// 	// const firstTouch = ev.touches[0];
-	// 	// CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
-	// 	// CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
-	// };
 	const touchMoveHandler = (ev: TouchEvent): void => {
+		const id = (ev?.target as HTMLElement)?.id as CarControlsIds | undefined;
+		if (Object.keys(CarControlsIds).includes(id || '')) return;
+
 		ev.preventDefault();
 
 		const firstTouch = ev.touches[0];
