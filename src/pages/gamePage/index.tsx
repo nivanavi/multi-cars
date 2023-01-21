@@ -46,7 +46,7 @@ const setupGame = (
 
 	const scene = new THREE.Scene();
 	// debug
-	if (!IS_DEV_MODE) {
+	if (IS_DEV_MODE) {
 		const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
 		const stats = new Stats();
 		stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -148,7 +148,7 @@ const GamePage: React.FC = () => {
 					<ArrowIcon direction='left' />
 				</button>
 				<MultiCar />
-				{checkIsMobile() && (
+				{true && (
 					<StyledCarControlsWrapper>
 						<StyledCarSteering>
 							<button type='button' id={CarControlsIds.LEFT}>
