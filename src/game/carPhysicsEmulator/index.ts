@@ -195,6 +195,7 @@ export const carPhysicEmulator = (
 			steering: CAR_SPECS.steering,
 			accelerating: CAR_SPECS.accelerating,
 			brake: CAR_SPECS.brake,
+			type,
 			chassis: {
 				position: chassisBody.position,
 				quaternion: chassisBody.quaternion,

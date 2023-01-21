@@ -1,4 +1,4 @@
-import {isJsonString, uuid} from '../libs/utils';
+import { isJsonString, uuid } from '../libs/utils';
 import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../eventBus';
 
 export type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
