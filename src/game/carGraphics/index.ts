@@ -1,19 +1,8 @@
 import * as THREE from 'three';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import delorianModelSrc from '../../models/delorian/delorian.gltf';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import eleanorModelSrc from '../../models/eleanor/eleanor.gltf';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import eleanorWheelModelSrc from '../../models/eleanor/wheel.gltf';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import delorianWheelModelSrc from '../../models/delorian/wheel.gltf';
 import { CreateModelCmd, createModelContainer } from '../modelLoader';
 import { CarMoveSpecs } from '../../eventBus';
 import { cannonToThreeQuaternion, cannonToThreeVec } from '../../libs/utils';
+import { MODELS_SRC } from '../../models';
 
 export enum Car {
 	DELORIAN = 'DELORIAN',
@@ -34,7 +23,7 @@ export type CarGraphicsCmd = {
 const graphics: { [key: string]: CreateModelCmd } = {
 	[Car.ELEANOR]: {
 		name: 'eleanor',
-		modelSrc: eleanorModelSrc,
+		modelSrc: MODELS_SRC.eleanorModelSrc,
 		castShadow: true,
 		rotation: new THREE.Euler(0, -Math.PI / 2, 0),
 		scale: new THREE.Vector3(2.8, 2.8, 2.8),
@@ -42,14 +31,14 @@ const graphics: { [key: string]: CreateModelCmd } = {
 	},
 	[`${Car.ELEANOR}Wheel`]: {
 		name: 'wheel',
-		modelSrc: eleanorWheelModelSrc,
+		modelSrc: MODELS_SRC.eleanorWheelModelSrc,
 		castShadow: true,
 		rotation: new THREE.Euler(0, Math.PI / 2, 0),
 		scale: new THREE.Vector3(0.57, 0.57, 0.57),
 	},
 	[Car.DELORIAN]: {
 		name: 'delorian',
-		modelSrc: delorianModelSrc,
+		modelSrc: MODELS_SRC.delorianModelSrc,
 		castShadow: true,
 		rotation: new THREE.Euler(0, -Math.PI, 0),
 		scale: new THREE.Vector3(2, 2, 2),
@@ -57,7 +46,7 @@ const graphics: { [key: string]: CreateModelCmd } = {
 	},
 	[`${Car.DELORIAN}Wheel`]: {
 		name: 'wheel',
-		modelSrc: delorianWheelModelSrc,
+		modelSrc: MODELS_SRC.delorianWheelModelSrc,
 		castShadow: true,
 		scale: new THREE.Vector3(0.57, 0.57, 0.57),
 	},

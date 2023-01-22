@@ -2,12 +2,10 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
 import { ShapeType, threeToCannon } from 'three-to-cannon';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import mapModelSrc from '../../models/map/map.gltf';
 
 import { groundPhysicsMaterial, rumpPhysicsMaterial } from '../physics';
 import { createModelContainer } from '../modelLoader';
+import { MODELS_SRC } from '../../models';
 
 const MAP_PHYSICS_OBJECT_NAME = 'physics';
 const MAP_ROAD_OBJECT_NAME = 'road';
@@ -27,12 +25,11 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 
 	createModelContainer({
 		name: 'map',
-		modelSrc: mapModelSrc,
+		modelSrc: MODELS_SRC.mapModelSrc,
 		receiveShadow: true,
 		castShadow: true,
 		scale: new THREE.Vector3(1, 1, 1),
 		callback: mapContainer => {
-			console.log(mapContainer);
 			mapContainer.children[0].children.forEach(object => {
 				const { name } = object;
 				if (name.startsWith(NO_CAST_OBJECT_NAME)) {

@@ -101,13 +101,15 @@ export const setupCamera = (
 	};
 
 	const touchMoveHandler = (ev: TouchEvent): void => {
-		const id = (ev?.target as HTMLElement)?.id as CarControlsIds | undefined;
-		if (Object.keys(CarControlsIds).includes(id || '')) return;
+		const filteredTouches = Array.from(ev.touches).filter(touch => {
+			const id = (touch?.target as HTMLElement)?.id as CarControlsIds | undefined;
+			return !Object.keys(CarControlsIds).includes(id || '');
+		});
 
 		ev.preventDefault();
 
-		const firstTouch = ev.touches[0];
-		const secondTouch = ev.touches[1];
+		const firstTouch = filteredTouches[0];
+		const secondTouch = filteredTouches[1];
 
 		if (firstTouch && secondTouch) {
 			const dist = Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY);
@@ -119,17 +121,19 @@ export const setupCamera = (
 			return;
 		}
 
+		const currentTouch = firstTouch || secondTouch;
+
 		if (!CAMERA_OPTIONS.prevTouchRotateY || !CAMERA_OPTIONS.prevTouchRotateX) {
-			CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
-			CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+			CAMERA_OPTIONS.prevTouchRotateX = currentTouch.clientX;
+			CAMERA_OPTIONS.prevTouchRotateY = currentTouch.clientY;
 		}
 
 		moveCamera(
-			firstTouch.clientX - CAMERA_OPTIONS.prevTouchRotateX,
-			firstTouch.clientY - CAMERA_OPTIONS.prevTouchRotateY
+			currentTouch.clientX - CAMERA_OPTIONS.prevTouchRotateX,
+			currentTouch.clientY - CAMERA_OPTIONS.prevTouchRotateY
 		);
-		CAMERA_OPTIONS.prevTouchRotateX = firstTouch.clientX;
-		CAMERA_OPTIONS.prevTouchRotateY = firstTouch.clientY;
+		CAMERA_OPTIONS.prevTouchRotateX = currentTouch.clientX;
+		CAMERA_OPTIONS.prevTouchRotateY = currentTouch.clientY;
 	};
 
 	const touchEndHandler = (): void => {
@@ -142,7 +146,6 @@ export const setupCamera = (
 	window.addEventListener('wheel', wheelEventHandler, { passive: false });
 
 	window.addEventListener('touchmove', touchMoveHandler, { passive: false });
-	// window.addEventListener('touchstart', touchStartHandler);
 	window.addEventListener('touchend', touchEndHandler);
 
 	return {
