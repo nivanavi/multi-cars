@@ -24,7 +24,6 @@ export const setupBall = (
 	const ballContainer = createModelContainer({
 		name: 'ball',
 		modelSrc: MODELS_SRC.ballModelSrc,
-		receiveShadow: true,
 		castShadow: true,
 		scale: new THREE.Vector3(1.3, 1.3, 1.3),
 	});

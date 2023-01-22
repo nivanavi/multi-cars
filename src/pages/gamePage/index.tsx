@@ -28,6 +28,7 @@ import {
 import { ArrowIcon } from '../../icons/ArrowIcon';
 import { ArrowFastIcon } from '../../icons/ArrowFastIcon';
 import { BrakeIcon } from '../../icons/BrakeIcon';
+import { RespawnIcon } from '../../icons/RespawnIcon';
 
 const setupGame = (
 	roomId: string,
@@ -146,6 +147,9 @@ const GamePage: React.FC = () => {
 			<StyledGamePageWrapper>
 				<button type='button' onClick={goHomePageHandler} className='backNavigate'>
 					<ArrowIcon direction='left' />
+				</button>
+				<button type='button' className='respawnButton' id={CarControlsIds.RESPAWN}>
+					<RespawnIcon />
 				</button>
 				<MultiCar />
 				{true && (

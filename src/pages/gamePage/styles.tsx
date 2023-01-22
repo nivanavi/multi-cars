@@ -27,6 +27,12 @@ export const StyledGamePageWrapper = styled.div`
 		top: 10px;
 		left: 10px;
 	}
+
+	.respawnButton {
+		position: fixed;
+		right: 10px;
+		top: 10px;
+	}
 `;
 
 export const StyledCarControlsWrapper = styled.div`
