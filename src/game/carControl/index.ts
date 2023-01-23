@@ -1,120 +1,55 @@
 import * as CANNON from 'cannon-es';
 import { CarMoveSpecs, eventBusSubscriptions } from '../../eventBus';
-
-const CAR_SETTINGS = {
-	/**
-	 * скорость поворота колес
-	 */
-	steeringSpeed: 0.07,
-	/**
-	 * максимальное значение выворота колес
-	 */
-	maxSteeringForce: Math.PI * 0.17,
-	/**
-	 * максимальная скорость
-	 */
-	maxSpeed: 0.25,
-	/**
-	 * максимальная скорость при бусте
-	 */
-	boostMaxSpeed: 0.4,
-	/**
-	 * текущая скорость
-	 */
-	speed: 0,
-	/**
-	 * мощность ускорения (что то типа лошидиных сил)
-	 */
-	acceleratingSpeed: 50,
-	/**
-	 * мощность ускорения при бернауте (что то типа лошидиных сил)
-	 */
-	acceleratingSpeedBurnOut: 270,
-	/**
-	 * сила торможения
-	 */
-	brakeForce: 1,
-	/**
-	 * предыдущая позиция автомобиля
-	 */
-	prevPosition: new CANNON.Vec3(),
-	/**
-	 * когда пробовал последний раз встать на колеса
-	 */
-	prevRespawnTime: 0,
-	/**
-	 * когда пробовал последний раз встать на колеса
-	 */
-	respawnCooldown: 1500,
-	/**
-	 * флаг бернаута
-	 */
-	isBurnOut: false,
-	/**
-	 * время начала бернаута
-	 */
-	startBurnOutTime: 0,
-	/**
-	 * продолжительность бернаута (время увеличенного ускорения)
-	 */
-	burnOutDelta: 300,
-	/**
-	 * шаг отличия предыдущей позиции от текущей
-	 */
-	forwardDelta: 0,
-	/**
-	 * флаг того что машина едет вперед
-	 */
-	isGoForward: true,
-	/**
-	 * вектор для рассчета движения машины
-	 */
-	worldForward: new CANNON.Vec3(),
-	up: false,
-	left: false,
-	down: false,
-	right: false,
-	brake: false,
-	boost: false,
-};
-
-export enum CarControlsIds {
-	FORWARD = 'FORWARD',
-	FORWARD_BOOST = 'FORWARD_BOOST',
-	REVERS = 'REVERS',
-	LEFT = 'LEFT',
-	RIGHT = 'RIGHT',
-	BRAKE = 'BRAKE',
-	RESPAWN = 'RESPAWN',
-}
+import { CAR_BALANCE_TYPE, CAR_CONTROLS_IDS } from './enums';
+import { BALANCED_SETTINGS } from './consts';
+import { SetupCarControlCmd } from './types';
 
 /**
  * функция осуществляющая рассчет характеристик машины исходя их действий пользователя
  */
 export const setupCarControl = (
-	chassis: CANNON.Body,
-	updateSpecs: (specs: CarMoveSpecs) => void
+	props: SetupCarControlCmd
 ): {
 	destroy: () => void;
 } => {
+	const { vehicle, updateSpecs, balancedType } = props;
+	const CAR_SETTINGS = BALANCED_SETTINGS[balancedType];
+
 	const CURRENT_SPECS: CarMoveSpecs = {
 		accelerating: 0,
 		brake: 0,
 		steering: 0,
 	};
 
-	const calcSpeedAndDirectionHandler = (): void => {
-		// рассчитываем скорость автомобиля
-		const positionDelta = new CANNON.Vec3().copy(chassis.position).vsub(CAR_SETTINGS.prevPosition);
-		CAR_SETTINGS.prevPosition.copy(chassis.position);
-		CAR_SETTINGS.speed = positionDelta.length();
-
+	const calcDirectionHandler = (): void => {
 		// рассчитываем то как движется машина
-		const localForward = new CANNON.Vec3(1, 0, 0);
-		chassis.vectorToWorldFrame(localForward, CAR_SETTINGS.worldForward);
-		CAR_SETTINGS.forwardDelta = CAR_SETTINGS.worldForward.dot(positionDelta);
-		CAR_SETTINGS.isGoForward = CAR_SETTINGS.forwardDelta < 0;
+		CAR_SETTINGS.isGoForward = vehicle.currentVehicleSpeedKmHour < 0;
 	};
+
+	const driftHandler = (): void => {
+		if (balancedType !== CAR_BALANCE_TYPE.DRIFT) return;
+
+		// рассчитываем цепкость задних колес для дрифта (чем сильнее выворот колес тем меньше цепкость)
+		const maxFriction = 1;
+		const minFriction = 0.15;
+		const frictionDelta = maxFriction - minFriction;
+		const steeringPercent = Math.floor(Math.abs((CURRENT_SPECS.steering * 100) / CAR_SETTINGS.maxSteeringForce));
+		const currentFrictionNerf = (steeringPercent * frictionDelta) / 100;
+		const currentFriction = minFriction + currentFrictionNerf;
+
+		const currentFrictionBack = CAR_SETTINGS.isGoForward ? currentFriction : 2;
+		const currentFrictionFront = CAR_SETTINGS.isGoForward ? 2.5 : 1;
+
+		vehicle.wheelInfos.forEach((wheel, index) => {
+			if ([0, 1].includes(index)) {
+				wheel.frictionSlip = currentFrictionFront;
+			}
+			if ([2, 3].includes(index)) {
+				wheel.frictionSlip = currentFrictionBack;
+			}
+		});
+	};
+
 	const checkCornerCaseSteering = (): void => {
 		// проверяем не превысили ли максимально возможный выворот колес
 		if (Math.abs(CURRENT_SPECS.steering) > CAR_SETTINGS.maxSteeringForce) {
@@ -143,14 +78,15 @@ export const setupCarControl = (
 
 	const checkCornerCaseAccelerating = (): void => {
 		const currentMaxSpeed: number = CAR_SETTINGS.boost ? CAR_SETTINGS.boostMaxSpeed : CAR_SETTINGS.maxSpeed;
+		const currentSpeed: number = Math.abs(vehicle.currentVehicleSpeedKmHour);
 		// проверяем не превысили ли максимально возможную скорость (если превысили убираем ускорение) но убираем только если идет попытка ускорится в направлении превышения скорости
-		if (CURRENT_SPECS.accelerating < 0 && CAR_SETTINGS.isGoForward && CAR_SETTINGS.speed > currentMaxSpeed)
+		if (CURRENT_SPECS.accelerating < 0 && CAR_SETTINGS.isGoForward && currentSpeed > currentMaxSpeed)
 			CURRENT_SPECS.accelerating = 0;
-		if (CURRENT_SPECS.accelerating > 0 && !CAR_SETTINGS.isGoForward && CAR_SETTINGS.speed > currentMaxSpeed)
+		if (CURRENT_SPECS.accelerating > 0 && !CAR_SETTINGS.isGoForward && currentSpeed > currentMaxSpeed)
 			CURRENT_SPECS.accelerating = 0;
 	};
 	const accelerateHandler = (): void => {
-		// если нажали и вперед и назад/ручник
+		// если нажали и вперед и назад/ручник и не режим дрифта
 		if (
 			(CAR_SETTINGS.up && CAR_SETTINGS.down) ||
 			(CAR_SETTINGS.up && CAR_SETTINGS.brake) ||
@@ -210,12 +146,12 @@ export const setupCarControl = (
 		const currentTime = Date.now();
 		if (currentTime < CAR_SETTINGS.prevRespawnTime + CAR_SETTINGS.respawnCooldown) return;
 		CAR_SETTINGS.prevRespawnTime = currentTime;
-		chassis.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
+		vehicle.chassisBody.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
 	};
 
 	eventBusSubscriptions.subscribeOnTickPhysic(() => {
 		// рассчитываем скорость и направление движения
-		calcSpeedAndDirectionHandler();
+		calcDirectionHandler();
 
 		// обновляем поворот колес
 		steeringHandler();
@@ -227,6 +163,8 @@ export const setupCarControl = (
 
 		// обновляем торможение
 		brakeHandler();
+
+		driftHandler();
 
 		updateSpecs(CURRENT_SPECS);
 	});
@@ -250,7 +188,8 @@ export const setupCarControl = (
 	// todo фикс камеры внутри объектов (дело в значении sides у материала из блендера выгружается не равное 0)
 	// todo звуки
 	// todo синхоронизированный мяч для катания с режимом сна (подумать над синхронизацией раз в сек или больше)
-
+	// todo 3 тачки с разными балансами (как сейчас\дрифи\гонка) | done
+	// todo еще один остров с трассой либо огромный мост ведущий в пустыню где перепады высот
 	/** мобила
 	 * выбор машины создание ника... | done
 	 * поворот камерой | done
@@ -304,28 +243,28 @@ export const setupCarControl = (
 		}
 	};
 
-	const touchPressHandler = (id: CarControlsIds, isPressed: boolean): void => {
+	const touchPressHandler = (id: CAR_CONTROLS_IDS, isPressed: boolean): void => {
 		switch (id) {
-			case CarControlsIds.FORWARD:
+			case CAR_CONTROLS_IDS.FORWARD:
 				CAR_SETTINGS.up = isPressed;
 				break;
-			case CarControlsIds.LEFT:
+			case CAR_CONTROLS_IDS.LEFT:
 				CAR_SETTINGS.left = isPressed;
 				break;
-			case CarControlsIds.REVERS:
+			case CAR_CONTROLS_IDS.REVERS:
 				CAR_SETTINGS.down = isPressed;
 				break;
-			case CarControlsIds.RIGHT:
+			case CAR_CONTROLS_IDS.RIGHT:
 				CAR_SETTINGS.right = isPressed;
 				break;
-			case CarControlsIds.BRAKE:
+			case CAR_CONTROLS_IDS.BRAKE:
 				CAR_SETTINGS.brake = isPressed;
 				break;
-			case CarControlsIds.FORWARD_BOOST:
+			case CAR_CONTROLS_IDS.FORWARD_BOOST:
 				CAR_SETTINGS.up = isPressed;
 				CAR_SETTINGS.boost = isPressed;
 				break;
-			case CarControlsIds.RESPAWN:
+			case CAR_CONTROLS_IDS.RESPAWN:
 				if (!isPressed) return;
 				respawnHandler();
 				break;
@@ -336,8 +275,8 @@ export const setupCarControl = (
 
 	const touchHandler = (ev: TouchEvent): void => {
 		const isPressed = ev.type === 'touchstart';
-		const id = (ev?.target as HTMLElement)?.id as CarControlsIds | undefined;
-		if (!id || !Object.keys(CarControlsIds).includes(id)) return;
+		const id = (ev?.target as HTMLElement)?.id as CAR_CONTROLS_IDS | undefined;
+		if (!id || !Object.keys(CAR_CONTROLS_IDS).includes(id)) return;
 		ev.preventDefault();
 		touchPressHandler(id, isPressed);
 	};

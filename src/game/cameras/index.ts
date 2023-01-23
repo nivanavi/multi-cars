@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { eventBusSubscriptions } from '../../eventBus';
 import { changeNumberSign } from '../../libs/utils';
-import { CarControlsIds } from '../carControl';
+import { CAR_CONTROLS_IDS } from '../carControl/enums';
 
 const CAMERA_OPTIONS = {
 	maxRotateY: Math.PI / 2.5,
@@ -102,8 +102,8 @@ export const setupCamera = (
 
 	const touchMoveHandler = (ev: TouchEvent): void => {
 		const filteredTouches = Array.from(ev.touches).filter(touch => {
-			const id = (touch?.target as HTMLElement)?.id as CarControlsIds | undefined;
-			return !Object.keys(CarControlsIds).includes(id || '');
+			const id = (touch?.target as HTMLElement)?.id as CAR_CONTROLS_IDS | undefined;
+			return !Object.keys(CAR_CONTROLS_IDS).includes(id || '');
 		});
 
 		ev.preventDefault();
@@ -154,7 +154,6 @@ export const setupCamera = (
 			window.removeEventListener('mousedown', startMoveHandler);
 			window.removeEventListener('wheel', wheelEventHandler);
 			window.removeEventListener('touchmove', touchMoveHandler);
-			// window.removeEventListener('touchstart', touchStartHandler);
 			window.removeEventListener('touchend', touchEndHandler);
 			cancelMoveCamera();
 		},

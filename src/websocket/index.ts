@@ -93,7 +93,6 @@ export const setupWebsocket = (
 				onCarUpdate(data.payload);
 				break;
 			case 'BALL_MOVE':
-				if (data.payload.carId === rootCarId) return;
 				onBallMove(data.payload);
 				break;
 			default:

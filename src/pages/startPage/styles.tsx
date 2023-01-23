@@ -24,6 +24,24 @@ export const StyledStartWrapper = styled.div`
 		margin: 30px 0 30px 0;
 	}
 
+	select {
+		background: unset;
+		color: white;
+		border-top: unset;
+		border-left: unset;
+		border-right: unset;
+		padding: 10px;
+		border-bottom: 2px solid #5b3197;
+	}
+
+	select option {
+		outline: none;
+		background: black;
+		color: white;
+		border: unset;
+		padding: 10px;
+	}
+
 	@media (max-width: 1024px) {
 		font-size: 12px;
 

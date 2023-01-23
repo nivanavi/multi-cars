@@ -29,16 +29,16 @@ export type CarMoveSpecs = {
 	 */
 	accelerating: number;
 	/**
-	 * текущее положение шасси
+	 * текущее торможение
 	 */
 	brake: number;
-	/**
-	 * текущее положение шасси
-	 */
 	/**
 	 * тип модели авто
 	 */
 	type?: Car;
+	/**
+	 * текущее положение шасси
+	 */
 	chassis?: {
 		position: CANNON.Vec3;
 		quaternion: CANNON.Quaternion;

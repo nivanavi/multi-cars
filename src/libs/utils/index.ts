@@ -5,6 +5,7 @@ import { TTFLoader } from 'three/examples/jsm/loaders/TTFLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 import { v4 } from 'uuid';
 import { Car } from '../../game/carGraphics';
+import { CAR_BALANCE_TYPE } from '../../game/carControl/enums';
 
 /**
  * Меняет знак числа на противоположный
@@ -65,6 +66,13 @@ export const NICKNAME_ITEM = 'nickname';
  * Получает никнейм пользователя из local storage
  */
 export const getNickname = (): string | undefined => localStorage.getItem(NICKNAME_ITEM) || undefined;
+
+export const BALANCE_ITEM = 'carBalance';
+/**
+ * Получает настройку авто
+ */
+export const getBalanceType = (): CAR_BALANCE_TYPE =>
+	(localStorage.getItem(BALANCE_ITEM) as CAR_BALANCE_TYPE) || CAR_BALANCE_TYPE.FAN;
 
 export const CAR_ITEM = 'car';
 /**

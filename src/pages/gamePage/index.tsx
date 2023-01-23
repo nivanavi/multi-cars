@@ -11,12 +11,12 @@ import { setupFloor } from '../../game/floor';
 import CannonDebugRenderer from '../../libs/cannonDebug';
 import { setupPhysics } from '../../game/physics';
 import { carPhysicEmulator } from '../../game/carPhysicsEmulator';
-import { CarControlsIds, setupCarControl } from '../../game/carControl';
+import { setupCarControl } from '../../game/carControl';
 import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
 import { GeneralMessageProps, setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/cameras';
-import { checkIsMobile, getCarType, getNickname, uuid } from '../../libs/utils';
+import { getBalanceType, getCarType, getNickname, uuid } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
 import {
 	StyledCarAcceleration,
@@ -29,6 +29,7 @@ import { ArrowIcon } from '../../icons/ArrowIcon';
 import { ArrowFastIcon } from '../../icons/ArrowFastIcon';
 import { BrakeIcon } from '../../icons/BrakeIcon';
 import { RespawnIcon } from '../../icons/RespawnIcon';
+import { CAR_CONTROLS_IDS } from '../../game/carControl/enums';
 
 const setupGame = (
 	roomId: string,
@@ -38,6 +39,7 @@ const setupGame = (
 	destroy: () => void;
 } => {
 	const CAR_TYPE = getCarType();
+	const BALANCE_TYPE = getBalanceType();
 	const ROOT_CAR_ID = uuid();
 	const CARS_ON_MAP = new Map<string, ReturnType<typeof carPhysicEmulator>>();
 	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'dev';
@@ -62,13 +64,18 @@ const setupGame = (
 	}
 	const { camera, destroy: destroyCamera } = setupCamera(scene, ROOT_CAR_ID);
 
-	const { chassis, update } = carPhysicEmulator({
+	const { vehicle, update } = carPhysicEmulator({
 		type: CAR_TYPE,
 		scene,
 		physicWorld,
 		id: ROOT_CAR_ID,
+		balancedType: BALANCE_TYPE,
 	});
-	const { destroy: destroyCarControl } = setupCarControl(chassis, update);
+	const { destroy: destroyCarControl } = setupCarControl({
+		vehicle,
+		updateSpecs: update,
+		balancedType: BALANCE_TYPE,
+	});
 	const deleteCarHandler = (id: string): void => {
 		CARS_ON_MAP.get(id)?.delete();
 		CARS_ON_MAP.delete(id);
@@ -84,6 +91,7 @@ const setupGame = (
 					id: data.carId,
 					isNotTriggerEvent: true,
 					scene,
+					balancedType: BALANCE_TYPE,
 				})
 			);
 		CARS_ON_MAP.get(data.carId)?.update(data);
@@ -148,40 +156,38 @@ const GamePage: React.FC = () => {
 				<button type='button' onClick={goHomePageHandler} className='backNavigate'>
 					<ArrowIcon direction='left' />
 				</button>
-				<button type='button' className='respawnButton' id={CarControlsIds.RESPAWN}>
+				<button type='button' className='respawnButton' id={CAR_CONTROLS_IDS.RESPAWN}>
 					<RespawnIcon />
 				</button>
 				<MultiCar />
-				{true && (
-					<StyledCarControlsWrapper>
-						<StyledCarSteering>
-							<button type='button' id={CarControlsIds.LEFT}>
-								<ArrowIcon direction='left' />
+				<StyledCarControlsWrapper>
+					<StyledCarSteering>
+						<button type='button' id={CAR_CONTROLS_IDS.LEFT}>
+							<ArrowIcon direction='left' />
+						</button>
+						<button type='button' id={CAR_CONTROLS_IDS.RIGHT}>
+							<ArrowIcon direction='right' />
+						</button>
+					</StyledCarSteering>
+					<StyledCarAcceleration>
+						<StyledCarAccelerationForward>
+							<button type='button' id={CAR_CONTROLS_IDS.FORWARD}>
+								<ArrowIcon direction='up' />
 							</button>
-							<button type='button' id={CarControlsIds.RIGHT}>
-								<ArrowIcon direction='right' />
+							<button type='button' id={CAR_CONTROLS_IDS.FORWARD_BOOST}>
+								<ArrowFastIcon />
 							</button>
-						</StyledCarSteering>
-						<StyledCarAcceleration>
-							<StyledCarAccelerationForward>
-								<button type='button' id={CarControlsIds.FORWARD}>
-									<ArrowIcon direction='up' />
-								</button>
-								<button type='button' id={CarControlsIds.FORWARD_BOOST}>
-									<ArrowFastIcon />
-								</button>
-							</StyledCarAccelerationForward>
-							<StyledCarAccelerationForward>
-								<button type='button' id={CarControlsIds.REVERS}>
-									<ArrowIcon direction='down' />
-								</button>
-								<button type='button' id={CarControlsIds.BRAKE}>
-									<BrakeIcon />
-								</button>
-							</StyledCarAccelerationForward>
-						</StyledCarAcceleration>
-					</StyledCarControlsWrapper>
-				)}
+						</StyledCarAccelerationForward>
+						<StyledCarAccelerationForward>
+							<button type='button' id={CAR_CONTROLS_IDS.REVERS}>
+								<ArrowIcon direction='down' />
+							</button>
+							<button type='button' id={CAR_CONTROLS_IDS.BRAKE}>
+								<BrakeIcon />
+							</button>
+						</StyledCarAccelerationForward>
+					</StyledCarAcceleration>
+				</StyledCarControlsWrapper>
 			</StyledGamePageWrapper>
 		</SceneIgniterContextProvider>
 	);
