@@ -79,6 +79,13 @@ export const CAR_ITEM = 'car';
  * Получает тип выбранной машины из local storage
  */
 export const getCarType = (): Car => (localStorage.getItem(CAR_ITEM) as Car) || Car.ELEANOR;
+
+export const PREV_ROOM_ITEM = 'prevRoomId';
+/**
+ * Получает id предыдущей комнаты
+ */
+export const getPrevRoomId = (): string | undefined => localStorage.getItem(PREV_ROOM_ITEM) || undefined;
+
 /**
  * Возвращает uuid
  */

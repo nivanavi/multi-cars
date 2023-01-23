@@ -10,6 +10,7 @@ import {
 	getBalanceType,
 	getCarType,
 	getNickname,
+	getPrevRoomId,
 	NICKNAME_ITEM,
 	uuid,
 } from '../../libs/utils';
@@ -246,6 +247,8 @@ const setupStartScene = (
 };
 
 const StartPageUi: React.FC = () => {
+	const PREV_ROOM_ID = getPrevRoomId();
+
 	const { canvas } = useSceneIgniterContext();
 	const navigate = useNavigate();
 	const [stateNickname, setNickname] = React.useState<string>(NICKNAME || '');
@@ -294,6 +297,16 @@ const StartPageUi: React.FC = () => {
 		setNickname('');
 		localStorage.setItem(NICKNAME_ITEM, '');
 	}, []);
+
+	const backToRoomHandler = React.useCallback((): void => {
+		if (!PREV_ROOM_ID)
+			return eventBusTriggers.triggerNotifications({
+				id: uuid(),
+				text: 'А ты еще не играл',
+			});
+
+		goToRoom(PREV_ROOM_ID);
+	}, [goToRoom]);
 
 	const copyRoomHandler = React.useCallback((): void => {
 		navigator.clipboard
@@ -359,6 +372,9 @@ const StartPageUi: React.FC = () => {
 					</button>
 					<button type='button' onClick={createGameHandler}>
 						cоздать комнату
+					</button>
+					<button type='button' onClick={backToRoomHandler}>
+						предыдущая комната
 					</button>
 
 					<select defaultValue={BALANCE_TYPE} onChange={changeBalanceHandler}>

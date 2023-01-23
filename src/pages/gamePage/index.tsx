@@ -16,7 +16,7 @@ import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
 import { GeneralMessageProps, setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/cameras';
-import { getBalanceType, getCarType, getNickname, uuid } from '../../libs/utils';
+import { getBalanceType, getCarType, getNickname, PREV_ROOM_ITEM, uuid } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
 import {
 	StyledCarAcceleration,
@@ -137,6 +137,7 @@ const MultiCar: React.FC = () => {
 		const { destroy } = setupGame(roomId, nickname, canvas);
 
 		return () => {
+			localStorage.setItem(PREV_ROOM_ITEM, roomId);
 			destroy();
 			eventBusSubscriptions.unsubscribe(['ON_NOTIFICATION']);
 		};
