@@ -1,7 +1,7 @@
 import * as CANNON from 'cannon-es';
-import { CarMoveSpecs, eventBusSubscriptions } from '../../eventBus';
-import { CAR_BALANCE_TYPE, CAR_CONTROLS_IDS } from './enums';
-import { BALANCED_SETTINGS } from './consts';
+import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../../eventBus';
+import { CAR_CONTROLS_IDS } from './enums';
+import { CAR_SETTINGS, DEFAULT_CAR_SPECS } from './consts';
 import { SetupCarControlCmd } from './types';
 
 /**
@@ -12,42 +12,13 @@ export const setupCarControl = (
 ): {
 	destroy: () => void;
 } => {
-	const { vehicle, updateSpecs, balancedType } = props;
-	const CAR_SETTINGS = BALANCED_SETTINGS[balancedType];
+	const { id, type, vehicle, updateSpecs } = props;
 
-	const CURRENT_SPECS: CarMoveSpecs = {
-		accelerating: 0,
-		brake: 0,
-		steering: 0,
-	};
+	const CURRENT_SPECS: CarMoveSpecs = { ...DEFAULT_CAR_SPECS };
 
 	const calcDirectionHandler = (): void => {
 		// рассчитываем то как движется машина
 		CAR_SETTINGS.isGoForward = vehicle.currentVehicleSpeedKmHour < 0;
-	};
-
-	const driftHandler = (): void => {
-		if (balancedType !== CAR_BALANCE_TYPE.DRIFT) return;
-
-		// рассчитываем цепкость задних колес для дрифта (чем сильнее выворот колес тем меньше цепкость)
-		const maxFriction = 1;
-		const minFriction = 0.15;
-		const frictionDelta = maxFriction - minFriction;
-		const steeringPercent = Math.floor(Math.abs((CURRENT_SPECS.steering * 100) / CAR_SETTINGS.maxSteeringForce));
-		const currentFrictionNerf = (steeringPercent * frictionDelta) / 100;
-		const currentFriction = minFriction + currentFrictionNerf;
-
-		const currentFrictionBack = CAR_SETTINGS.isGoForward ? currentFriction : 2;
-		const currentFrictionFront = CAR_SETTINGS.isGoForward ? 2.5 : 1;
-
-		vehicle.wheelInfos.forEach((wheel, index) => {
-			if ([0, 1].includes(index)) {
-				wheel.frictionSlip = currentFrictionFront;
-			}
-			if ([2, 3].includes(index)) {
-				wheel.frictionSlip = currentFrictionBack;
-			}
-		});
 	};
 
 	const checkCornerCaseSteering = (): void => {
@@ -97,7 +68,7 @@ export const setupCarControl = (
 			return;
 		}
 
-		const currentTime = Date.now();
+		const currentTime = performance.now();
 		if (CAR_SETTINGS.isBurnOut) CAR_SETTINGS.startBurnOutTime = currentTime;
 		if (CAR_SETTINGS.isBurnOut) CAR_SETTINGS.isBurnOut = false;
 
@@ -143,7 +114,7 @@ export const setupCarControl = (
 	};
 
 	const respawnHandler = (): void => {
-		const currentTime = Date.now();
+		const currentTime = performance.now();
 		if (currentTime < CAR_SETTINGS.prevRespawnTime + CAR_SETTINGS.respawnCooldown) return;
 		CAR_SETTINGS.prevRespawnTime = currentTime;
 		vehicle.chassisBody.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
@@ -164,9 +135,24 @@ export const setupCarControl = (
 		// обновляем торможение
 		brakeHandler();
 
-		driftHandler();
-
 		updateSpecs(CURRENT_SPECS);
+
+		const carMoveSpecs: CarMoveSpecs = {
+			steering: CURRENT_SPECS.steering,
+			accelerating: CURRENT_SPECS.accelerating,
+			brake: CURRENT_SPECS.brake,
+			type,
+			chassis: {
+				position: vehicle.chassisBody.position,
+				quaternion: vehicle.chassisBody.quaternion,
+			},
+			wheels: vehicle.wheelInfos.map((_, index) => ({
+				position: vehicle.wheelInfos[index].worldTransform.position,
+				quaternion: vehicle.wheelInfos[index].worldTransform.quaternion,
+			})),
+		};
+
+		eventBusTriggers.triggerOnCarMove({ id, ...carMoveSpecs });
 	});
 
 	// todo сделать машинку аркаднее (интересное управление фо фан) | done
@@ -186,11 +172,10 @@ export const setupCarControl = (
 	// todo на превью машинка на подиуме | done
 	// todo respawn | done
 	// todo синхоронизированный мяч для катания | done
-	// todo 3 тачки с разными балансами (как сейчас\дрифи\гонка) | done
+	// todo 3 тачки с разными балансами (как сейчас\дрифи\гонка) было сделано но выпилил т.к не доволен результатом | done
 
 	// todo фикс камеры внутри объектов (дело в значении sides у материала из блендера выгружается не равное 0)
 	// todo звуки
-	// todo еще один остров с трассой либо огромный мост ведущий в пустыню где перепады высот
 
 	/** мобила
 	 * выбор машины создание ника... | done
@@ -198,6 +183,7 @@ export const setupCarControl = (
 	 * приближение и отдаление камеры | done
 	 * адаптация верстки под мобилу | done
 	 * управление машиной | done
+	 * управление персонажем
 	 */
 
 	/** мапа
@@ -205,17 +191,32 @@ export const setupCarControl = (
 	 * смена дня и ночи | done
 	 * тени в зависимости от положения солнца | done
 	 * карта с автогенерируемыми в зависимости от типа указанного в блендере препятсвиями | done
+	 * еще один остров с трассой либо огромный мост ведущий в пустыню где перепады высот
 	 * наполнение карты деревья дома телепорты интерактив etc
-	 * пасхалки ?
+	 * пасхалки (нло) крутится над головой видно только если играем за персонажа на нее можно запрыгнуть с помощью дробовика
 	 */
 
 	/** интерфейс
-	 * кнопка возврата в меню из игры // done
+	 * кнопка возврата в меню из игры | done
 	 * фавиконка
 	 * мб динамческий тайтл
 	 */
+
+	/** персонаж
+	 * выход из машины с переключением камеры на персонажа | done
+	 * если стрелять находясь в воздухе то будет подбрасывать вверх | done
+	 * реализовать нанесение урона при 0хп будет возвращать в машину | done
+	 * моделька персонажа | done
+	 * вход в машину с переключением камеры на машину | done
+	 * дробовик у персонажа с 2 патронами и перезарядкой
+	 * реализовать нанесение урона от машины если сила столкновения достаточная то минус все хп иначе ничего не будет
+	 * пофиксить нахождение в воздухе более прозрачно
+	 * реальзовать интерфейс отображениея хп в интерфейсе
+	 * сделать контакт материал для персонажа с машинами мячем мапой и др персонажем
+	 * реализовать звук от выстрелов других людей с громкостью в зависимосьти от расстояния
+	 */
 	const keyPressHandler = (ev: KeyboardEvent): void => {
-		if (ev.repeat) return;
+		if (ev.repeat || !CAR_SETTINGS.isNowControlled) return;
 		const isPressed = ev.type === 'keydown';
 		switch (ev.code) {
 			case 'KeyW':
@@ -240,13 +241,19 @@ export const setupCarControl = (
 				if (!isPressed) return;
 				respawnHandler();
 				break;
+			case 'KeyF':
+				if (!isPressed) return;
+				eventBusTriggers.triggerOnExitCar({
+					position: vehicle.chassisBody.position,
+				});
+				break;
 			default:
 				break;
 		}
 	};
 
-	const touchPressHandler = (id: CAR_CONTROLS_IDS, isPressed: boolean): void => {
-		switch (id) {
+	const touchPressHandler = (controlId: CAR_CONTROLS_IDS, isPressed: boolean): void => {
+		switch (controlId) {
 			case CAR_CONTROLS_IDS.FORWARD:
 				CAR_SETTINGS.up = isPressed;
 				break;
@@ -277,10 +284,10 @@ export const setupCarControl = (
 
 	const touchHandler = (ev: TouchEvent): void => {
 		const isPressed = ev.type === 'touchstart';
-		const id = (ev?.target as HTMLElement)?.id as CAR_CONTROLS_IDS | undefined;
-		if (!id || !Object.keys(CAR_CONTROLS_IDS).includes(id)) return;
+		const controlId = (ev?.target as HTMLElement)?.id as CAR_CONTROLS_IDS | undefined;
+		if (!controlId || !Object.keys(CAR_CONTROLS_IDS).includes(controlId)) return;
 		ev.preventDefault();
-		touchPressHandler(id, isPressed);
+		touchPressHandler(controlId, isPressed);
 	};
 
 	const windowBlurHandler = (): void => {
@@ -291,6 +298,14 @@ export const setupCarControl = (
 		CAR_SETTINGS.brake = false;
 		CAR_SETTINGS.boost = false;
 	};
+
+	eventBusSubscriptions.subscribeOnEnterCar(() => {
+		CAR_SETTINGS.isNowControlled = true;
+	});
+	eventBusSubscriptions.subscribeOnExitCar(() => {
+		CAR_SETTINGS.isNowControlled = false;
+		windowBlurHandler();
+	});
 
 	window.addEventListener('touchstart', touchHandler, { passive: false });
 	window.addEventListener('touchend', touchHandler, { passive: false });

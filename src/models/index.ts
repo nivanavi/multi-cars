@@ -20,6 +20,13 @@ import mapModelSrc from './map/map.gltf';
 // @ts-ignore
 import ballModelSrc from './ball/ball.gltf';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import characterModelSrc from './character/character.gltf';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import characterFPVModelSrc from './character/characterFPV.gltf';
+
 export const MODELS_SRC = {
 	delorianModelSrc,
 	delorianWheelModelSrc,
@@ -27,4 +34,6 @@ export const MODELS_SRC = {
 	eleanorWheelModelSrc,
 	mapModelSrc,
 	ballModelSrc,
+	characterModelSrc,
+	characterFPVModelSrc,
 };

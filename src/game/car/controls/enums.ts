@@ -1,9 +1,3 @@
-export enum CAR_BALANCE_TYPE {
-	FAN = 'FAN',
-	DRIFT = 'DRIFT',
-	SPEED = 'SPEED',
-}
-
 export enum CAR_CONTROLS_IDS {
 	FORWARD = 'FORWARD',
 	FORWARD_BOOST = 'FORWARD_BOOST',

@@ -1,25 +1,40 @@
 import { isJsonString, uuid } from '../libs/utils';
-import { BallMoveSpecs, CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../eventBus';
+import {
+	eventBusSubscriptions,
+	eventBusTriggers,
+	BallMoveSpecs,
+	CarMoveSpecs,
+	CharacterDamaged,
+	CharacterMoveSpecs,
+} from '../eventBus';
 
-export type GeneralMessageProps = { carId: string; roomId: string; nickname?: string };
+export type GeneralMessageProps = { id: string; roomId: string; nickname?: string };
 type WebsocketMessages =
-	| {
-			action: 'CAR_MOVE';
-			payload: CarMoveSpecs & GeneralMessageProps;
-	  }
-	| { action: 'CAR_DELETE'; payload: GeneralMessageProps }
-	| { action: 'CAR_CONNECTED'; payload: GeneralMessageProps }
-	| { action: 'BALL_MOVE'; payload: BallMoveSpecs & GeneralMessageProps };
-
+	| { action: 'DISCONNECT'; payload: GeneralMessageProps }
+	| { action: 'CONNECT'; payload: GeneralMessageProps }
+	| { action: 'CLIENT_SYNC'; payload: ClientData & GeneralMessageProps }
+	| { action: 'CHARACTER_DELETE'; payload: GeneralMessageProps }
+	| { action: 'CHARACTER_SHOT'; payload: GeneralMessageProps }
+	| { action: 'CHARACTER_DAMAGED'; payload: GeneralMessageProps & CharacterDamaged };
 const WS_URL = process.env.REACT_APP_WS_URL || '';
 
 type WebsocketProps = {
-	rootCarId: string;
+	rootId: string;
 	nickname: string;
 	roomId: string;
-	onCarDelete: (id: string) => void;
+	onDisconnect: (id: string) => void;
 	onCarUpdate: (data: GeneralMessageProps & CarMoveSpecs) => void;
-	onBallMove: (data: BallMoveSpecs) => void;
+	onCharacterUpdate: (data: GeneralMessageProps & CharacterMoveSpecs) => void;
+	onCharacterDamaged: (data: CharacterDamaged) => void;
+	onCharacterDelete: (id: string) => void;
+	onCharacterShot: (id: string) => void;
+	onBallUpdate: (data: BallMoveSpecs) => void;
+};
+
+type ClientData = {
+	character?: CharacterMoveSpecs;
+	car?: CarMoveSpecs;
+	ball?: BallMoveSpecs;
 };
 
 export const setupWebsocket = (
@@ -27,47 +42,84 @@ export const setupWebsocket = (
 ): {
 	close: () => void;
 } => {
-	const { rootCarId, roomId, nickname, onCarDelete, onCarUpdate, onBallMove } = props;
+	const {
+		rootId,
+		roomId,
+		nickname,
+		onDisconnect,
+		onCarUpdate,
+		onBallUpdate,
+		onCharacterUpdate,
+		onCharacterDelete,
+		onCharacterShot,
+		onCharacterDamaged,
+	} = props;
 
 	const websocket = new WebSocket(WS_URL);
 
+	const clientData: ClientData = {};
+
 	const sendMessages = (message: WebsocketMessages): void => {
+		if (websocket.readyState !== 1) return;
 		websocket.send(JSON.stringify(message));
 	};
 
 	websocket.onopen = (): void => {
 		sendMessages({
-			action: 'CAR_CONNECTED',
-			payload: { carId: rootCarId, roomId, nickname },
+			action: 'CONNECT',
+			payload: { id: rootId, roomId, nickname },
 		});
 	};
 
-	eventBusSubscriptions.subscribeOnCarMove(({ chassis, steering, type, accelerating, brake, id }) => {
-		if (websocket.readyState !== 1) return;
+	eventBusSubscriptions.subscribeOnCarMove(({ chassis, wheels, steering, type, accelerating, brake }) => {
+		clientData.car = { chassis, steering, type, accelerating, brake, wheels };
+	});
+
+	eventBusSubscriptions.subscribeOnCharacterMove(({ position, quaternion, rotateX }) => {
+		clientData.character = { position, quaternion, rotateX };
+	});
+
+	eventBusSubscriptions.subscribeOnCharacterShot(() => {
 		sendMessages({
-			action: 'CAR_MOVE',
+			action: 'CHARACTER_SHOT',
+			payload: { id: rootId, roomId, nickname },
+		});
+	});
+
+	eventBusSubscriptions.subscribeOnEnterCar(() => {
+		clientData.character = undefined;
+		sendMessages({
+			action: 'CHARACTER_DELETE',
 			payload: {
-				chassis,
-				steering,
-				accelerating,
-				type,
-				brake,
-				carId: id,
+				id: rootId,
 				roomId,
 			},
 		});
 	});
 
-	eventBusSubscriptions.subscribeOnBallMove(({ position, quaternion }) => {
-		if (websocket.readyState !== 1) return;
+	eventBusSubscriptions.subscribeOnCharacterDamaged(data => {
 		sendMessages({
-			action: 'BALL_MOVE',
+			action: 'CHARACTER_DAMAGED',
 			payload: {
-				position,
-				quaternion,
-				carId: rootCarId,
+				id: rootId,
+				roomId,
+				...data,
+			},
+		});
+	});
+
+	eventBusSubscriptions.subscribeOnBallMove(({ position, quaternion }) => {
+		clientData.ball = { position, quaternion };
+	});
+
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+		sendMessages({
+			action: 'CLIENT_SYNC',
+			payload: {
+				...clientData,
 				roomId,
 				nickname,
+				id: rootId,
 			},
 		});
 	});
@@ -76,24 +128,33 @@ export const setupWebsocket = (
 		if (!isJsonString(message.data)) return;
 		const data: WebsocketMessages = JSON.parse(message.data);
 		switch (data.action) {
-			case 'CAR_CONNECTED':
+			case 'CONNECT':
 				eventBusTriggers.triggerNotifications({
 					id: uuid(),
-					text: `Встречайте: ${data.payload.nickname || data.payload.carId}`,
+					text: `Встречайте: ${data.payload.nickname || data.payload.id}`,
 				});
 				break;
-			case 'CAR_DELETE':
+			case 'DISCONNECT':
 				eventBusTriggers.triggerNotifications({
 					id: uuid(),
-					text: `К сожалению ${data.payload.nickname || data.payload.carId} позвала мама`,
+					text: `К сожалению ${data.payload.nickname || data.payload.id} позвала мама`,
 				});
-				onCarDelete(data.payload.carId);
+				onDisconnect(data.payload.id);
 				break;
-			case 'CAR_MOVE':
-				onCarUpdate(data.payload);
+			case 'CLIENT_SYNC':
+				if (data.payload.ball) onBallUpdate(data.payload.ball);
+				if (data.payload.character)
+					onCharacterUpdate({ id: data.payload.id, roomId: data.payload.roomId, ...data.payload.character });
+				if (data.payload.car) onCarUpdate({ id: data.payload.id, roomId: data.payload.roomId, ...data.payload.car });
 				break;
-			case 'BALL_MOVE':
-				onBallMove(data.payload);
+			case 'CHARACTER_DELETE':
+				onCharacterDelete(data.payload.id);
+				break;
+			case 'CHARACTER_DAMAGED':
+				onCharacterDamaged(data.payload);
+				break;
+			case 'CHARACTER_SHOT':
+				onCharacterShot(data.payload.id);
 				break;
 			default:
 				break;

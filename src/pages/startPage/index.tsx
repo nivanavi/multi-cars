@@ -2,32 +2,19 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
 import { StyledChooseItem, StyledStartPageWrapper, StyledStartWrapper } from './styles';
-import { eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
-import {
-	BALANCE_ITEM,
-	CAR_ITEM,
-	createText,
-	getBalanceType,
-	getCarType,
-	getNickname,
-	getPrevRoomId,
-	NICKNAME_ITEM,
-	uuid,
-} from '../../libs/utils';
+import { eventBusSubscriptions, eventBusTriggers, eventBusUnsubscribe } from '../../eventBus';
+import { CAR_ITEM, createText, getCarType, getNickname, getPrevRoomId, NICKNAME_ITEM, uuid } from '../../libs/utils';
 import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
 import { setupRenderer } from '../../libs/renderer';
-import { Car, setupCarGraphics } from '../../game/carGraphics';
-import { CAR_BALANCE_TYPE } from '../../game/carControl/enums';
+import { Car, setupCarGraphics } from '../../game/car/graphics';
 
 const CREATE_ROOM_ID = uuid();
 const NICKNAME = getNickname();
-const BALANCE_TYPE = getBalanceType();
 
 const defaultCarSpecs =
 	'{"steering":0.3240707511102649,"accelerating":0,"brake":0,"chassis":{"position":{"x":6.209922981512133e-10,"y":1.2180300790771568,"z":1.043726032343269e-9},"quaternion":{"x":2.286369093008103e-13,"y":2.544033793127587e-10,"z":0.0008983566672058353,"w":0.999999596477568}},"wheels":[{"position":{"x":-1.7988924781656301,"y":0.5999990315463578,"z":1.2000000019590153},"quaternion":{"x":-0.0001724171132824505,"y":0.1957628569871226,"z":0.000898246046037732,"w":0.9806508386019049}},{"position":{"x":-1.7988924793867669,"y":0.5999990315463583,"z":-1.1999999980409854},"quaternion":{"x":-0.00017241691407176215,"y":0.19576285698729803,"z":0.0008982470439600734,"w":0.9806508386009909}},{"position":{"x":1.9511135746794022,"y":0.599999031546358,"z":1.2000000000509863},"quaternion":{"x":2.2378236770171426e-13,"y":2.544033836293054e-10,"z":0.000879274610775308,"w":0.9999996134380047}},{"position":{"x":1.9511135734582654,"y":0.5999990315463583,"z":-1.1999999999490145},"quaternion":{"x":2.2378262658572286e-13,"y":2.544033836290777e-10,"z":0.0008792756283872,"w":0.99999961343711}}]}';
 
 let prevTime = 0;
-
 const setupStartScene = (
 	nickname: string,
 	canvas: HTMLCanvasElement
@@ -110,7 +97,7 @@ const setupStartScene = (
 	const {
 		carContainer: firstCar,
 		wheels: firstWheels,
-		updateHandler: updateFirst,
+		update: updateFirst,
 	} = setupCarGraphics({
 		scene,
 		type: CARS_TO_CHOOSE[0],
@@ -127,7 +114,7 @@ const setupStartScene = (
 	const {
 		carContainer: secondCar,
 		wheels: secondWheels,
-		updateHandler: updateSecondCar,
+		update: updateSecondCar,
 	} = setupCarGraphics({
 		scene,
 		type: CARS_TO_CHOOSE[1],
@@ -261,7 +248,7 @@ const StartPageUi: React.FC = () => {
 		const { destroy } = setupStartScene(stateNickname || 'Где ник?', canvas);
 		return () => {
 			destroy();
-			eventBusSubscriptions.unsubscribe(['ON_NOTIFICATION']);
+			eventBusUnsubscribe.unsubscribe(['ON_NOTIFICATION']);
 		};
 	}, [canvas, stateNickname]);
 
@@ -289,10 +276,6 @@ const StartPageUi: React.FC = () => {
 		localStorage.setItem(NICKNAME_ITEM, nicknameValue);
 	}, []);
 
-	const changeBalanceHandler = React.useCallback((ev: React.ChangeEvent<HTMLSelectElement>): void => {
-		localStorage.setItem(BALANCE_ITEM, ev.target.value);
-	}, []);
-
 	const changeNicknameHandler = React.useCallback((): void => {
 		setNickname('');
 		localStorage.setItem(NICKNAME_ITEM, '');
@@ -306,7 +289,7 @@ const StartPageUi: React.FC = () => {
 			});
 
 		goToRoom(PREV_ROOM_ID);
-	}, [goToRoom]);
+	}, [PREV_ROOM_ID, goToRoom]);
 
 	const copyRoomHandler = React.useCallback((): void => {
 		navigator.clipboard
@@ -376,14 +359,6 @@ const StartPageUi: React.FC = () => {
 					<button type='button' onClick={backToRoomHandler}>
 						предыдущая комната
 					</button>
-
-					<select defaultValue={BALANCE_TYPE} onChange={changeBalanceHandler}>
-						{Object.entries(CAR_BALANCE_TYPE).map(([key]) => (
-							<option key={key} value={key}>
-								{key}
-							</option>
-						))}
-					</select>
 				</StyledChooseItem>
 			</StyledStartPageWrapper>
 		</StyledStartWrapper>

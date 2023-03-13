@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { CreateModelCmd, createModelContainer } from '../modelLoader';
-import { CarMoveSpecs } from '../../eventBus';
-import { cannonToThreeQuaternion, cannonToThreeVec } from '../../libs/utils';
-import { MODELS_SRC } from '../../models';
+import { cannonToThreeQuaternion, cannonToThreeVec } from '../../../libs/utils';
+import { MODELS_SRC } from '../../../models';
+import { CarMoveSpecs } from '../../../eventBus';
+import { CreateModelCmd, createModelContainer } from '../../../libs/modelLoader';
 
 export enum Car {
 	DELORIAN = 'DELORIAN',
@@ -55,10 +55,10 @@ const graphics: { [key: string]: CreateModelCmd } = {
 export const setupCarGraphics = (
 	props: CarGraphicsCmd
 ): {
-	carContainer: THREE.Group;
-	wheels: THREE.Group[];
-	updateHandler: (props: CarMoveSpecs) => void;
-	deleteHandler: () => void;
+	carContainer: THREE.Object3D;
+	wheels: THREE.Object3D[];
+	update: (props: CarMoveSpecs) => void;
+	destroy: () => void;
 } => {
 	const { scene, type } = props;
 	const wheelName = `${type}Wheel`;
@@ -66,7 +66,7 @@ export const setupCarGraphics = (
 	const carContainer = createModelContainer(graphics[type]);
 	scene.add(carContainer);
 
-	const wheelsGraphic: THREE.Group[] = [];
+	const wheelsGraphic: THREE.Object3D[] = [];
 	createModelContainer({
 		...graphics[wheelName],
 		callback: container => {
@@ -79,7 +79,7 @@ export const setupCarGraphics = (
 		},
 	});
 
-	const updateHandler = (specs: CarMoveSpecs): void => {
+	const update = (specs: CarMoveSpecs): void => {
 		const { chassis, wheels } = specs || {};
 		const { position, quaternion } = chassis || {};
 		if (!position || !quaternion) return;
@@ -94,7 +94,7 @@ export const setupCarGraphics = (
 		});
 	};
 
-	const deleteHandler = (): void => {
+	const destroy = (): void => {
 		scene.remove(carContainer);
 		wheelsGraphic.forEach(wheel => scene.remove(wheel));
 	};
@@ -102,7 +102,7 @@ export const setupCarGraphics = (
 	return {
 		carContainer,
 		wheels: wheelsGraphic,
-		updateHandler,
-		deleteHandler,
+		update,
+		destroy,
 	};
 };

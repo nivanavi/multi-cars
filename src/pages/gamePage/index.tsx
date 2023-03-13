@@ -4,19 +4,19 @@ import * as THREE from 'three';
 // @ts-ignore
 import Stats from 'stats.js';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
+import * as CANNON from 'cannon-es';
 import { SceneIgniterContextProvider, useSceneIgniterContext } from '../../libs/sceneIgniter/SceneIgniter';
 import { setupBall } from '../../game/ball';
 import { setupFloor } from '../../game/floor';
 import CannonDebugRenderer from '../../libs/cannonDebug';
 import { setupPhysics } from '../../game/physics';
-import { carPhysicEmulator } from '../../game/carPhysicsEmulator';
-import { setupCarControl } from '../../game/carControl';
+import { carPhysicsEmulator } from '../../game/car/physicsEmulator';
+import { setupCarControl } from '../../game/car/controls';
 import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
 import { GeneralMessageProps, setupWebsocket } from '../../websocket';
-import { setupCamera } from '../../game/cameras';
-import { getBalanceType, getCarType, getNickname, PREV_ROOM_ITEM, uuid } from '../../libs/utils';
+import { setupCamera } from '../../game/camera/camera';
+import { cannonToThreeVec, getCarType, getNickname, PREV_ROOM_ITEM, uuid } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
 import {
 	StyledCarAcceleration,
@@ -29,7 +29,23 @@ import { ArrowIcon } from '../../icons/ArrowIcon';
 import { ArrowFastIcon } from '../../icons/ArrowFastIcon';
 import { BrakeIcon } from '../../icons/BrakeIcon';
 import { RespawnIcon } from '../../icons/RespawnIcon';
-import { CAR_CONTROLS_IDS } from '../../game/carControl/enums';
+import { CAR_CONTROLS_IDS } from '../../game/car/controls/enums';
+import { setupSounds } from '../../sounds';
+import { setupCharacterGraphics } from '../../game/character/graphics';
+import { setupCharacterControl } from '../../game/character/controls';
+import { characterPhysicsEmulator } from '../../game/character/physicsEmulator';
+import { setupCarGraphics } from '../../game/car/graphics';
+import { DEFAULT_CAR_SPECS } from '../../game/car/controls/consts';
+import {
+	CarMoveSpecs,
+	CharacterDamaged,
+	CharacterMoveSpecs,
+	eventBusSubscriptions,
+	eventBusTriggers,
+	eventBusUnsubscribe,
+	TriggerOnCarMoveCmd,
+	TriggerOnCharacterMoveCmd,
+} from '../../eventBus';
 
 const setupGame = (
 	roomId: string,
@@ -38,17 +54,215 @@ const setupGame = (
 ): {
 	destroy: () => void;
 } => {
+	// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ИГРЫ
+	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'devc';
 	const CAR_TYPE = getCarType();
-	const BALANCE_TYPE = getBalanceType();
-	const ROOT_CAR_ID = uuid();
-	const CARS_ON_MAP = new Map<string, ReturnType<typeof carPhysicEmulator>>();
-	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'dev';
+	const ROOT_ID = uuid();
 
+	// ВСЕ СИНХРОНИЗИРУЕМЫЕ ОБЪЕКТЫ ИГРЫ
+	const CARS_ON_MAP = new Map<
+		string,
+		{
+			physics: ReturnType<typeof carPhysicsEmulator>;
+			graphics: ReturnType<typeof setupCarGraphics>;
+			controls?: ReturnType<typeof setupCarControl>;
+		}
+	>();
+	const CHARACTERS_ON_MAP = new Map<
+		string,
+		{
+			physics: ReturnType<typeof characterPhysicsEmulator>;
+			graphics: ReturnType<typeof setupCharacterGraphics>;
+			controls?: ReturnType<typeof setupCharacterControl>;
+		}
+	>();
+
+	// СОЗДАЕМ МИР
 	const { physicWorld } = setupPhysics();
 	physicWorld.addEventListener('postStep', () => eventBusTriggers.triggerOnTickPhysic());
 
+	// СОЗДАЕМ СЦЕНУ
 	const scene = new THREE.Scene();
-	// debug
+	const { camera } = setupCamera(scene, ROOT_ID);
+	const { renderer } = setupRenderer(canvas, scene, camera);
+
+	// ДОБАВЛЯЕМ КАРТУ НА СЦЕНУ
+	setupFloor(scene, physicWorld);
+	// ДОБАВЛЯЕМ ВОДУ НА СЦЕНУ
+	setupWater(scene);
+	// ДОБАВЛЯЕМ СВЕТ НА СЦЕНУ
+	setupDayNight(scene, renderer, camera);
+
+	// ДОБАВЛЯЕМ МЯЧ
+	const { update: updateBallHandler } = setupBall(scene, physicWorld);
+
+	// ФУНКЦИИ ПО СИНХРОНИЗАЦИИ МАШИН НА КАРТЕ
+	const deleteCarHandler = (id: string): void => {
+		const car = CARS_ON_MAP.get(id);
+		if (!car) return;
+		car.physics.destroy();
+		car.graphics.destroy();
+		car.controls?.destroy();
+		CARS_ON_MAP.delete(id);
+	};
+
+	const updateCarHandler = (data: GeneralMessageProps & CarMoveSpecs): void => {
+		const isRoot = data.id === ROOT_ID;
+
+		const car = CARS_ON_MAP.get(data.id);
+		if (!car) {
+			const graphics = setupCarGraphics({
+				scene,
+				type: data.type || CAR_TYPE,
+			});
+			const physics = carPhysicsEmulator({
+				physicWorld,
+			});
+			if (isRoot) {
+				const controls = setupCarControl({
+					id: data.id,
+					type: data.type || CAR_TYPE,
+					vehicle: physics.vehicle,
+					updateSpecs: specs => {
+						physics.update(specs);
+					},
+				});
+
+				CARS_ON_MAP.set(data.id, { physics, graphics, controls });
+			} else {
+				CARS_ON_MAP.set(data.id, { physics, graphics });
+			}
+		}
+
+		car?.physics?.update(data);
+		car?.graphics?.update(data);
+	};
+
+	// СОЗДАНИЕ ДЕФОЛЬНОЙ МАШИНЫ
+	updateCarHandler({
+		id: ROOT_ID,
+		roomId,
+		...DEFAULT_CAR_SPECS,
+	});
+
+	// ФУНКЦИЯ ПО ОБНОВЛЕНИЮ ДЕФОЛТНОЙ МАШИНЫ
+	const rootCarUpdate = ({ id: carId, ...specs }: TriggerOnCarMoveCmd): void => {
+		if (carId !== ROOT_ID) return;
+		updateCarHandler({
+			id: ROOT_ID,
+			roomId,
+			...specs,
+		});
+	};
+	// ПОДПИСКА НА ДВИЖЕНИЕ МАШИН
+	eventBusSubscriptions.subscribeOnCarMove(rootCarUpdate);
+
+	// ФУНКЦИИ ПО СИНХРОНИЗАЦИИ ПЕРСОНАЖЕЙ НА КАРТЕ
+	const deleteCharacterHandler = (id: string): void => {
+		const character = CHARACTERS_ON_MAP.get(id);
+		if (!character) return;
+		character.controls?.destroy();
+		character.graphics.destroy();
+		character.physics.destroy();
+		CHARACTERS_ON_MAP.delete(id);
+	};
+
+	const updateCharacterHandler = (data: GeneralMessageProps & CharacterMoveSpecs): void => {
+		const isRoot = data.id === ROOT_ID;
+		const character = CHARACTERS_ON_MAP.get(data.id);
+		if (!character) {
+			const physics = characterPhysicsEmulator({
+				physicWorld,
+				defaultPosition: data.position,
+			});
+			const graphics = setupCharacterGraphics({
+				id: data.id,
+				scene,
+				// isFPV: true,
+				isFPV: isRoot,
+			});
+			if (isRoot) {
+				const controls = setupCharacterControl({
+					id: ROOT_ID,
+					camera,
+					character: physics.character,
+					shotAnimation: graphics.shotAnimation,
+					bones: graphics.bones,
+					scene,
+				});
+
+				CHARACTERS_ON_MAP.set(data.id, { physics, graphics, controls });
+			} else {
+				CHARACTERS_ON_MAP.set(data.id, { physics, graphics });
+			}
+		}
+
+		character?.physics?.update(data);
+		character?.graphics?.update(data);
+	};
+
+	const damageCharacterHandler = (data: CharacterDamaged): void => {
+		if (data.idDamaged !== ROOT_ID) return;
+		CHARACTERS_ON_MAP.get(ROOT_ID)?.controls?.damaged(data.damage);
+	};
+
+	const shotCharacterHandler = (id: string): void => {
+		const rootCharacterPosition = CHARACTERS_ON_MAP.get(ROOT_ID)?.physics?.character?.position;
+
+		CHARACTERS_ON_MAP.get(id)?.graphics?.shotAnimation(
+			rootCharacterPosition ? cannonToThreeVec(rootCharacterPosition) : undefined
+		);
+	};
+
+	// ФУНКЦИЯ ПО ОБНОВЛЕНИЮ ДЕФОЛТНОГО ПЕРСОНАЖА
+	const rootCharacterUpdate = ({ id: characterId, ...specs }: TriggerOnCharacterMoveCmd): void => {
+		if (characterId !== ROOT_ID) return;
+		updateCharacterHandler({
+			id: ROOT_ID,
+			roomId,
+			...specs,
+		});
+	};
+
+	// ПОДПИСКА НА ДВИЖЕНИЕ ПЕРСОНАЖЕЙ
+	eventBusSubscriptions.subscribeOnCharacterMove(rootCharacterUpdate);
+
+	// ПОДПИСКА НА ВЫХОД ИЗ МАШИНЫ ЧТО БЫ СОЗДАТЬ ДЕФОЛТНОГО ПЕРСОНАЖА
+	eventBusSubscriptions.subscribeOnExitCar(({ position }) => {
+		const spawnPosition = new CANNON.Vec3().copy(position);
+		spawnPosition.y += 3.5;
+		updateCharacterHandler({
+			id: ROOT_ID,
+			roomId,
+			position: spawnPosition,
+			quaternion: new CANNON.Quaternion(),
+			rotateX: 0,
+		});
+	});
+
+	// ПОДПИСКА НА ВХОД В МАШИНУ ЧТО БЫ УДАЛИТЬ ДЕФОЛТНОГО ПЕРСОНАЖА
+	eventBusSubscriptions.subscribeOnEnterCar(() => {
+		deleteCharacterHandler(ROOT_ID);
+	});
+
+	// СОЗДАНИЕ ВЕБ СОКЕТ СОЕДИНЕНИЯ С КОЛБЭКАМИ
+	const { close } = setupWebsocket({
+		roomId,
+		nickname,
+		rootId: ROOT_ID,
+		onDisconnect: id => {
+			deleteCarHandler(id);
+			deleteCharacterHandler(id);
+		},
+		onCarUpdate: updateCarHandler,
+		onCharacterUpdate: updateCharacterHandler,
+		onCharacterDelete: deleteCharacterHandler,
+		onCharacterDamaged: damageCharacterHandler,
+		onCharacterShot: shotCharacterHandler,
+		onBallUpdate: updateBallHandler,
+	});
+
+	// СОЗДАНИЕ ДЕВ ИНСТРУМЕНТОВ ДЛЯ МОНИТОРИНГА
 	if (IS_DEV_MODE) {
 		const CANNON_DEBUG_RENDERER = new CannonDebugRenderer(scene, physicWorld);
 		const stats = new Stats();
@@ -62,63 +276,24 @@ const setupGame = (
 			stats.end();
 		});
 	}
-	const { camera, destroy: destroyCamera } = setupCamera(scene, ROOT_CAR_ID);
 
-	const { vehicle, update } = carPhysicEmulator({
-		type: CAR_TYPE,
-		scene,
-		physicWorld,
-		id: ROOT_CAR_ID,
-		balancedType: BALANCE_TYPE,
-	});
-	const { destroy: destroyCarControl } = setupCarControl({
-		vehicle,
-		updateSpecs: update,
-		balancedType: BALANCE_TYPE,
-	});
-	const deleteCarHandler = (id: string): void => {
-		CARS_ON_MAP.get(id)?.delete();
-		CARS_ON_MAP.delete(id);
+	// ФЛАГ ОЗНАЧАЮЩИЙ ВКЛЮЧЕНА ЛИ ВОЗМОЖНОСТЬ ПРОИГРЫВАТЬ ЗВУКИ
+	let isSoundSetup = false;
+	const startGameHandler = (): void => {
+		document.body.requestPointerLock();
+		if (!isSoundSetup) setupSounds();
+		isSoundSetup = true;
 	};
 
-	const updateCarHandler = (data: GeneralMessageProps & CarMoveSpecs): void => {
-		if (!CARS_ON_MAP.get(data.carId))
-			CARS_ON_MAP.set(
-				data.carId,
-				carPhysicEmulator({
-					physicWorld,
-					type: data.type || CAR_TYPE,
-					id: data.carId,
-					isNotTriggerEvent: true,
-					scene,
-					balancedType: BALANCE_TYPE,
-				})
-			);
-		CARS_ON_MAP.get(data.carId)?.update(data);
+	window.addEventListener('click', startGameHandler);
+	const destroy = (): void => {
+		window.removeEventListener('click', startGameHandler);
+		document.exitPointerLock();
+		close();
 	};
-
-	setupFloor(scene, physicWorld);
-	setupWater(scene);
-	const { updateBallSpecs } = setupBall(scene, physicWorld);
-
-	const { renderer } = setupRenderer(canvas, scene, camera);
-	setupDayNight(scene, renderer, camera);
-
-	const { close } = setupWebsocket({
-		roomId,
-		nickname,
-		rootCarId: ROOT_CAR_ID,
-		onCarDelete: deleteCarHandler,
-		onCarUpdate: updateCarHandler,
-		onBallMove: updateBallSpecs,
-	});
 
 	return {
-		destroy: (): void => {
-			close();
-			destroyCamera();
-			destroyCarControl();
-		},
+		destroy,
 	};
 };
 
@@ -139,7 +314,7 @@ const MultiCar: React.FC = () => {
 		return () => {
 			localStorage.setItem(PREV_ROOM_ITEM, roomId);
 			destroy();
-			eventBusSubscriptions.unsubscribe(['ON_NOTIFICATION']);
+			eventBusUnsubscribe.unsubscribe(['ON_NOTIFICATION']);
 		};
 	}, [canvas, goHomePageHandler, navigate, roomId]);
 

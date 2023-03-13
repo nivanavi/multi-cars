@@ -4,6 +4,7 @@ import { eventBusSubscriptions } from '../../eventBus';
 export const groundPhysicsMaterial = new CANNON.Material('groundMaterial');
 export const carPhysicsMaterial = new CANNON.Material('carMaterial');
 export const rumpPhysicsMaterial = new CANNON.Material('rumpMaterial');
+export const characterPhysicsMaterial = new CANNON.Material('characterMaterial');
 // export const defaultPhysicsMaterial = new CANNON.Material('dummyMaterial');
 // export const wheelPhysicsMaterial = new CANNON.Material('wheelMaterial');
 
@@ -40,6 +41,28 @@ const carRumpContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, ru
 	contactEquationStiffness: 1000,
 });
 
+const groundCharacterContactMaterial = new CANNON.ContactMaterial(characterPhysicsMaterial, groundPhysicsMaterial, {
+	friction: 0.3,
+	restitution: 0,
+	contactEquationStiffness: 10000,
+});
+
+const characterCharacterContactMaterial = new CANNON.ContactMaterial(
+	characterPhysicsMaterial,
+	characterPhysicsMaterial,
+	{
+		friction: 0.5,
+		restitution: 3,
+		contactEquationStiffness: 1000,
+	}
+);
+
+const characterCarContactMaterial = new CANNON.ContactMaterial(characterPhysicsMaterial, carPhysicsMaterial, {
+	friction: 0,
+	restitution: 0,
+	contactEquationStiffness: 1000,
+});
+
 export const setupPhysics = (): {
 	physicWorld: CANNON.World;
 } => {
@@ -58,6 +81,10 @@ export const setupPhysics = (): {
 	physicWorld.addContactMaterial(groundCarContactMaterial);
 	physicWorld.addContactMaterial(carCarContactMaterial);
 	physicWorld.addContactMaterial(carRumpContactMaterial);
+
+	physicWorld.addContactMaterial(groundCharacterContactMaterial);
+	physicWorld.addContactMaterial(characterCharacterContactMaterial);
+	physicWorld.addContactMaterial(characterCarContactMaterial);
 
 	eventBusSubscriptions.subscribeOnTick(() => {
 		// очень крутая тема избавляет от боли кастомного ограничения частоты вызовов функции апдейта физики

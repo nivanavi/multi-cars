@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 export type CreateModelCmd = {
 	name: string;
@@ -9,12 +9,15 @@ export type CreateModelCmd = {
 	receiveShadow?: boolean;
 	castShadow?: boolean;
 	modelSrc: string;
-	callback?: (container: THREE.Group, modelScene: THREE.Group) => void;
+	callback?: (container: THREE.Object3D, model: GLTF) => void;
+	userData?: {
+		id: string;
+	};
 };
 
 const gltfLoader = new GLTFLoader();
 
-export const createModelContainer: (props: CreateModelCmd) => THREE.Group = props => {
+export const createModelContainer: (props: CreateModelCmd) => THREE.Object3D = props => {
 	const {
 		position = new THREE.Vector3(0, 0, 0),
 		scale = new THREE.Vector3(1, 1, 1),
@@ -24,25 +27,28 @@ export const createModelContainer: (props: CreateModelCmd) => THREE.Group = prop
 		callback,
 		receiveShadow = false,
 		castShadow = false,
+		userData = {},
 	} = props;
-	const container: THREE.Group = new THREE.Group();
+	const container: THREE.Object3D = new THREE.Object3D();
 	container.name = name;
+	container.userData = userData;
 
 	gltfLoader.load(modelSrc, model => {
 		const modelScene = model.scene;
-		modelScene.children.forEach(child => {
+
+		modelScene.traverse(child => {
 			child.castShadow = castShadow;
 			child.receiveShadow = receiveShadow;
-			child.children.forEach(nestChild => {
-				nestChild.castShadow = castShadow;
-				nestChild.receiveShadow = receiveShadow;
-			});
+			child.userData = userData;
+			child.frustumCulled = false;
 		});
+
 		modelScene.rotation.copy(rotation);
 		modelScene.scale.copy(scale);
 		modelScene.position.copy(position);
+		modelScene.userData = userData;
 		container.add(modelScene);
-		if (callback) callback(container, modelScene);
+		if (callback) callback(container, model);
 	});
 
 	return container;

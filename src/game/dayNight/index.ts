@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import CSM from 'three-csm';
-// import { CSM } from 'three/examples/jsm/csm/CSM';
 import { eventBusSubscriptions } from '../../eventBus';
 import { rgbToHex } from '../../libs/utils';
 

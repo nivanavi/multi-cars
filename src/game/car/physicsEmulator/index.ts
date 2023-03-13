@@ -1,22 +1,19 @@
 import * as CANNON from 'cannon-es';
-import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../eventBus';
-import { changeNumberSign } from '../../libs/utils';
-import { carPhysicsMaterial } from '../physics';
-import { setupCarGraphics } from '../carGraphics';
-import { BALANCED_WHEEL_SETTINGS, CAR_SETTINGS } from './consts';
+import { CarMoveSpecs, eventBusSubscriptions } from '../../../eventBus';
+import { changeNumberSign } from '../../../libs/utils';
+import { carPhysicsMaterial } from '../../physics';
+import { CAR_SETTINGS, WHEEL_SETTINGS } from './consts';
 import { CarPhysicsEmulatorCmd } from './types';
 
-export const carPhysicEmulator = (
+export const carPhysicsEmulator = (
 	props: CarPhysicsEmulatorCmd
 ): {
-	delete: () => void;
+	destroy: () => void;
 	vehicle: CANNON.RaycastVehicle;
 	update: (specs: CarMoveSpecs) => void;
 } => {
-	const { id, physicWorld, isNotTriggerEvent, scene, type, balancedType } = props;
+	const { physicWorld } = props;
 	let CAR_SPECS: CarMoveSpecs | null = null;
-
-	const { updateHandler, deleteHandler: deleteGraphicHandler } = setupCarGraphics({ scene, type });
 
 	const chassisShape = new CANNON.Box(
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
@@ -36,8 +33,6 @@ export const carPhysicEmulator = (
 		chassisBody,
 	});
 	vehicle.chassisBody.position.set(0, 5, 0);
-
-	const WHEEL_SETTINGS = BALANCED_WHEEL_SETTINGS[balancedType];
 
 	WHEEL_SETTINGS.chassisConnectionPointLocal.set(
 		-((CAR_SETTINGS.chassisLength * 60) / 100),
@@ -76,9 +71,11 @@ export const carPhysicEmulator = (
 		vehicle.setSteeringValue(CAR_SPECS.steering, CAR_SETTINGS.frontRight);
 
 		// обновляем ускорение автомобиля
-		if (WHEEL_SETTINGS.isFrontWheelDrive) {
+		if (WHEEL_SETTINGS.is4x4) {
 			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.frontLeft);
 			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.frontRight);
+			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backLeft);
+			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backRight);
 		} else {
 			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backLeft);
 			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backRight);
@@ -99,37 +96,16 @@ export const carPhysicEmulator = (
 		vehicle.wheelInfos.forEach((wheel, index) => {
 			vehicle.updateWheelTransform(index);
 		});
-
-		const carMoveSpecs: CarMoveSpecs = {
-			steering: CAR_SPECS.steering,
-			accelerating: CAR_SPECS.accelerating,
-			brake: CAR_SPECS.brake,
-			type,
-			chassis: {
-				position: vehicle.chassisBody.position,
-				quaternion: vehicle.chassisBody.quaternion,
-			},
-			wheels: vehicle.wheelInfos.map((_, index) => ({
-				position: vehicle.wheelInfos[index].worldTransform.position,
-				quaternion: vehicle.wheelInfos[index].worldTransform.quaternion,
-			})),
-		};
-		updateHandler(carMoveSpecs);
-		if (isNotTriggerEvent) return;
-		eventBusTriggers.triggerOnCarMove({ id, ...carMoveSpecs });
 	});
-
-	const deleteHandler = (): void => {
-		vehicle.removeFromWorld(physicWorld);
-		physicWorld.removeBody(chassisBody);
-		deleteGraphicHandler();
-	};
 
 	return {
 		vehicle,
 		update: (specs): void => {
 			CAR_SPECS = specs;
 		},
-		delete: deleteHandler,
+		destroy: (): void => {
+			vehicle.removeFromWorld(physicWorld);
+			physicWorld.removeBody(chassisBody);
+		},
 	};
 };

@@ -4,8 +4,7 @@ import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TTFLoader } from 'three/examples/jsm/loaders/TTFLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 import { v4 } from 'uuid';
-import { Car } from '../../game/carGraphics';
-import { CAR_BALANCE_TYPE } from '../../game/carControl/enums';
+import { Car } from '../../game/car/graphics';
 
 /**
  * Меняет знак числа на противоположный
@@ -29,12 +28,22 @@ export const isJsonString = (str: string | undefined): boolean => {
  * Переводит вектор Cannon в вектор Three
  */
 export const cannonToThreeVec = (vector: CANNON.Vec3): THREE.Vector3 => new THREE.Vector3(vector.x, vector.y, vector.z);
+/**
+ * Переводит вектор Cannon в вектор Three
+ */
+export const threeToCannonVec = (vector: THREE.Vector3): CANNON.Vec3 => new CANNON.Vec3(vector.x, vector.y, vector.z);
 
 /**
  * Переводит Quaternion Cannon в Quaternion Three
  */
 export const cannonToThreeQuaternion = (quaternion: CANNON.Quaternion): THREE.Quaternion =>
 	new THREE.Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+
+/**
+ * Переводит Quaternion Three в Quaternion Cannon
+ */
+export const threeToCannonQuaternion = (quaternion: THREE.Quaternion): CANNON.Quaternion =>
+	new CANNON.Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
 
 /**
  * Копирует позицию и вращение физического объекта для графического объекта (синхронизация)
@@ -66,13 +75,6 @@ export const NICKNAME_ITEM = 'nickname';
  * Получает никнейм пользователя из local storage
  */
 export const getNickname = (): string | undefined => localStorage.getItem(NICKNAME_ITEM) || undefined;
-
-export const BALANCE_ITEM = 'carBalance';
-/**
- * Получает настройку авто
- */
-export const getBalanceType = (): CAR_BALANCE_TYPE =>
-	(localStorage.getItem(BALANCE_ITEM) as CAR_BALANCE_TYPE) || CAR_BALANCE_TYPE.FAN;
 
 export const CAR_ITEM = 'car';
 /**

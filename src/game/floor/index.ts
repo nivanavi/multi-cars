@@ -4,8 +4,8 @@ import * as CANNON from 'cannon-es';
 import { ShapeType, threeToCannon } from 'three-to-cannon';
 
 import { groundPhysicsMaterial, rumpPhysicsMaterial } from '../physics';
-import { createModelContainer } from '../modelLoader';
 import { MODELS_SRC } from '../../models';
+import { createModelContainer } from '../../libs/modelLoader';
 
 const MAP_PHYSICS_OBJECT_NAME = 'physics';
 const MAP_ROAD_OBJECT_NAME = 'road';
