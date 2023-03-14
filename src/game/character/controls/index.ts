@@ -218,7 +218,9 @@ export const setupCharacterControl = (
 
 		if (!CHARACTER_SETTINGS.isInTheAir) defaultVelocityHandler();
 		if (CHARACTER_SETTINGS.isInTheAir) inAirVelocityHandler();
+	};
 
+	const onTickHandler = (): void => {
 		const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, camera.userData.rotateY, 0));
 
 		character.quaternion.copy(threeToCannonQuaternion(quaternion));
@@ -332,6 +334,7 @@ export const setupCharacterControl = (
 	};
 
 	eventBusSubscriptions.subscribeOnTickPhysic(onTickPhysic);
+	eventBusSubscriptions.subscribeOnTick(onTickHandler);
 
 	// window.addEventListener('touchstart', touchHandler, { passive: false });
 	// window.addEventListener('touchend', touchHandler, { passive: false });
@@ -344,6 +347,7 @@ export const setupCharacterControl = (
 		damaged,
 		destroy: (): void => {
 			eventBusUnsubscribe.unsubscribeOnTickPhysic(onTickPhysic);
+			eventBusUnsubscribe.unsubscribeOnTick(onTickHandler);
 			// window.removeEventListener('touchstart', touchHandler);
 			// window.removeEventListener('touchend', touchHandler);
 			window.removeEventListener('keydown', keyPressHandler);

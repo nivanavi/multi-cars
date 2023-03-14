@@ -30,7 +30,7 @@ export const setupBall = (
 
 	scene.add(ballContainer);
 
-	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+	eventBusSubscriptions.subscribeOnTick(() => {
 		ballContainer.position.copy(cannonToThreeVec(ballBody.position));
 		ballContainer.quaternion.copy(cannonToThreeQuaternion(ballBody.quaternion));
 

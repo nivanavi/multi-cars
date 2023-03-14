@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { eventBusSubscriptions } from '../../../eventBus';
 import { cameraControl } from '../cameraControl';
+import { cannonToThreeVec } from '../../../libs/utils';
 
 export type CameraType = {
 	userData: {
@@ -17,7 +18,7 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 		maxZoom: 50,
 		minZoom: 5,
 		currentZoom: 5,
-		moveSenseDivider: 800,
+		moveSense: 0.001,
 	};
 
 	const camera: CameraType = new THREE.PerspectiveCamera(50, 1, 0.4, 3000) as CameraType;
@@ -59,9 +60,9 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 
 	const moveCamera = (x: number, y: number): void => {
 		if (CAMERA_OPTIONS.isCarCamera) {
-			const nextRotateX = cameraCarXContainer.rotation.x - y / CAMERA_OPTIONS.moveSenseDivider;
+			const nextRotateX = cameraCarXContainer.rotation.x - y * CAMERA_OPTIONS.moveSense;
 
-			cameraCarYContainer.rotation.y -= x / CAMERA_OPTIONS.moveSenseDivider;
+			cameraCarYContainer.rotation.y -= x * CAMERA_OPTIONS.moveSense;
 
 			if (Math.abs(nextRotateX) < CAMERA_OPTIONS.maxRotateX && nextRotateX < 0)
 				cameraCarXContainer.rotation.x = nextRotateX;
@@ -73,9 +74,9 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 		}
 
 		if (CAMERA_OPTIONS.isCharacterCamera) {
-			const nextRotateX = cameraCharacterXContainer.rotation.x - y / CAMERA_OPTIONS.moveSenseDivider;
+			const nextRotateX = cameraCharacterXContainer.rotation.x - y * CAMERA_OPTIONS.moveSense;
 
-			cameraCharacterYContainer.rotation.y -= x / CAMERA_OPTIONS.moveSenseDivider;
+			cameraCharacterYContainer.rotation.y -= x * CAMERA_OPTIONS.moveSense;
 
 			if (Math.abs(nextRotateX) < CAMERA_OPTIONS.maxRotateX) cameraCharacterXContainer.rotation.x = nextRotateX;
 
@@ -89,7 +90,7 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 	const updateCameraPosition = (position: THREE.Vector3): void => {
 		if (CAMERA_OPTIONS.isCarCamera) {
 			// двигаем камеру для машины и задаем ей точку слежки
-			camera.lookAt(position);
+			// camera.lookAt(CAMERA_OPTIONS.position);
 			cameraCarYContainer.position.copy(position);
 		}
 
@@ -101,12 +102,11 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 
 	eventBusSubscriptions.subscribeOnCarMove(({ id, chassis }) => {
 		if (id === watchId && chassis && CAMERA_OPTIONS.isCarCamera)
-			updateCameraPosition(new THREE.Vector3(chassis.position.x, chassis.position.y, chassis.position.z));
+			updateCameraPosition(cannonToThreeVec(chassis.position));
 	});
 
 	eventBusSubscriptions.subscribeOnCharacterMove(({ id, position }) => {
-		if (id === watchId && CAMERA_OPTIONS.isCharacterCamera)
-			updateCameraPosition(new THREE.Vector3(position.x, position.y, position.z));
+		if (id === watchId && CAMERA_OPTIONS.isCharacterCamera) updateCameraPosition(cannonToThreeVec(position));
 	});
 
 	eventBusSubscriptions.subscribeOnDeleteRootCharacter(() => {

@@ -18,15 +18,11 @@ export const setupCarControl = (
 		/**
 		 * скорость поворота колес
 		 */
-		steeringSpeed: 0.07,
+		steeringSpeed: 2.8,
 		/**
 		 * сила торможения
 		 */
 		brakeForce: 1,
-		/**
-		 * сила торможения
-		 */
-		slowDownBrakeForce: 0.1,
 		/**
 		 * когда пробовал последний раз встать на колеса
 		 */
@@ -96,23 +92,25 @@ export const setupCarControl = (
 			CURRENT_SPECS.steering = Math.sign(CURRENT_SPECS.steering) * CAR_SETTINGS.maxSteeringForce;
 		}
 	};
-	const steeringHandler = (): void => {
+	const steeringHandler = (delta: number): void => {
+		const steeringSpeed = CAR_SETTINGS.steeringSpeed * delta;
 		// случай когда нажали и налево и направо или не нажаты кнопки поворота
 		if ((CAR_SETTINGS.right && CAR_SETTINGS.left) || (!CAR_SETTINGS.right && !CAR_SETTINGS.left)) {
-			if (Math.abs(CURRENT_SPECS.steering) > 0 && Math.abs(CURRENT_SPECS.steering) > CAR_SETTINGS.steeringSpeed)
-				CURRENT_SPECS.steering -= CAR_SETTINGS.steeringSpeed * Math.sign(CURRENT_SPECS.steering);
-			else CURRENT_SPECS.steering = 0;
-
+			if (Math.abs(CURRENT_SPECS.steering) > 0 && Math.abs(CURRENT_SPECS.steering) > steeringSpeed) {
+				CURRENT_SPECS.steering -= steeringSpeed * Math.sign(CURRENT_SPECS.steering);
+			} else {
+				CURRENT_SPECS.steering = 0;
+			}
 			return;
 		}
 		// если не нажаты оба и нажато вправо
 		if (CAR_SETTINGS.right) {
-			CURRENT_SPECS.steering -= CAR_SETTINGS.steeringSpeed;
+			CURRENT_SPECS.steering -= steeringSpeed;
 			return;
 		}
 		// если не нажаты оба и нажато влево
 		if (CAR_SETTINGS.left) {
-			CURRENT_SPECS.steering += CAR_SETTINGS.steeringSpeed;
+			CURRENT_SPECS.steering += steeringSpeed;
 		}
 	};
 
@@ -190,12 +188,12 @@ export const setupCarControl = (
 		vehicle.chassisBody.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
 	};
 
-	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+	eventBusSubscriptions.subscribeOnTick(({ delta }) => {
 		// рассчитываем скорость и направление движения
 		calcDirectionHandler();
 
 		// обновляем поворот колес
-		steeringHandler();
+		steeringHandler(delta);
 		checkCornerCaseSteering();
 
 		// обновляем ускорение автомобиля
