@@ -58,7 +58,7 @@ const setupGame = (
 	destroy: () => void;
 } => {
 	// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ИГРЫ
-	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'devc';
+	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'dev';
 	const CAR_TYPE = getCarType();
 	const ROOT_ID = uuid();
 

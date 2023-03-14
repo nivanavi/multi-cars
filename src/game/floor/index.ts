@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-
-import { ShapeType, threeToCannon } from 'three-to-cannon';
-
 import { groundPhysicsMaterial, rumpPhysicsMaterial } from '../physics';
 import { MODELS_SRC } from '../../models';
 import { createModelContainer } from '../../libs/modelLoader';
+import { threeToCannonQuaternion, threeToCannonVec } from '../../libs/utils';
 
 const MAP_PHYSICS_OBJECT_NAME = 'physics';
 const MAP_ROAD_OBJECT_NAME = 'road';
@@ -39,17 +37,26 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 					});
 				}
 				if (name.startsWith(MAP_PHYSICS_OBJECT_NAME) || name.startsWith(MAP_ROAD_OBJECT_NAME)) {
-					const { shape } = threeToCannon(object as any, { type: ShapeType.BOX }) || {};
-					const objectBody = new CANNON.Body({
-						material: name.startsWith(MAP_ROAD_OBJECT_NAME) ? groundPhysicsMaterial : rumpPhysicsMaterial,
-						mass: 0,
-					});
-					if (!((object as THREE.Mesh).material as THREE.Material).name) (object as THREE.Mesh).visible = false;
-					if (!shape) return;
-					objectBody.addShape(shape);
-					objectBody.position.set(object.position.x, object.position.y, object.position.z);
-					objectBody.quaternion.set(object.quaternion.x, object.quaternion.y, object.quaternion.z, object.quaternion.w);
-					physicWorld.addBody(objectBody);
+					if (object instanceof THREE.Mesh) {
+						const box = new THREE.Box3();
+						object.geometry.computeBoundingBox();
+						const { boundingBox } = (object as THREE.Mesh).geometry;
+						if (!boundingBox) return;
+						box.copy(boundingBox).applyMatrix4(object.matrixWorld);
+						const sizeVector = new THREE.Vector3();
+						box.getSize(sizeVector);
+						sizeVector.divideScalar(2);
+						const objectShape = new CANNON.Box(threeToCannonVec(sizeVector));
+						const objectBody = new CANNON.Body({
+							material: name.startsWith(MAP_ROAD_OBJECT_NAME) ? groundPhysicsMaterial : rumpPhysicsMaterial,
+							mass: 0,
+						});
+						objectBody.addShape(objectShape);
+						objectBody.position.copy(threeToCannonVec(object.position));
+						objectBody.quaternion.copy(threeToCannonQuaternion(object.quaternion));
+						physicWorld.addBody(objectBody);
+						if (!object.material.name) object.visible = false;
+					}
 				}
 			});
 			scene.add(mapContainer);
