@@ -9,17 +9,17 @@ export type CameraType = {
 	};
 } & THREE.PerspectiveCamera;
 
-const CAMERA_OPTIONS = {
-	isCarCamera: true,
-	isCharacterCamera: false,
-	maxRotateX: Math.PI / 2.4,
-	maxZoom: 50,
-	minZoom: 5,
-	currentZoom: 5,
-	moveSenseDivider: 800,
-};
-
 export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: CameraType; destroy: () => void } => {
+	const CAMERA_OPTIONS = {
+		isCarCamera: true,
+		isCharacterCamera: false,
+		maxRotateX: Math.PI / 2.4,
+		maxZoom: 50,
+		minZoom: 5,
+		currentZoom: 5,
+		moveSenseDivider: 800,
+	};
+
 	const camera: CameraType = new THREE.PerspectiveCamera(50, 1, 0.4, 3000) as CameraType;
 	camera.userData = {
 		rotateX: 0,

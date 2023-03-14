@@ -39,7 +39,7 @@ export const setupFloor = (scene: THREE.Scene, physicWorld: CANNON.World): void 
 					});
 				}
 				if (name.startsWith(MAP_PHYSICS_OBJECT_NAME) || name.startsWith(MAP_ROAD_OBJECT_NAME)) {
-					const { shape } = threeToCannon(object, { type: ShapeType.BOX }) || {};
+					const { shape } = threeToCannon(object as any, { type: ShapeType.BOX }) || {};
 					const objectBody = new CANNON.Body({
 						material: name.startsWith(MAP_ROAD_OBJECT_NAME) ? groundPhysicsMaterial : rumpPhysicsMaterial,
 						mass: 0,

@@ -46,8 +46,6 @@ export const setupCharacterControl = (
 
 	const { id, nickname, character, camera, scene, physicWorld, shotAnimation } = props;
 
-	console.log('character.position in control', character.position);
-
 	// делаем луч
 	const shootRaycaster = new THREE.Raycaster();
 
@@ -66,9 +64,13 @@ export const setupCharacterControl = (
 
 	const damaged = (data: CharacterDamaged): void => {
 		const nexHp = CHARACTER_SETTINGS.hp - data.damage;
+		eventBusTriggers.triggerOnPlaySound({
+			sound: 'characterHit',
+			velocity: 1,
+		});
 		if (nexHp <= 0)
 			return eventBusTriggers.triggerOnDeleteRootCharacter({
-				reason: DeleteCharacterReasons.DEAD_BY_PLAYER,
+				reason: data.damage === 100 ? DeleteCharacterReasons.DEAD_BY_CAR : DeleteCharacterReasons.DEAD_BY_PLAYER,
 				killerNickname: data.nicknameDamaging,
 			});
 		CHARACTER_SETTINGS.hp = nexHp;
@@ -227,8 +229,6 @@ export const setupCharacterControl = (
 			rotateX: camera.userData.rotateX,
 		};
 
-		console.log('character.position in trigger', character.position);
-
 		eventBusTriggers.triggerOnCharacterMove({ id, ...characterMoveSpecs });
 	};
 
@@ -240,8 +240,10 @@ export const setupCharacterControl = (
 
 		if (otherBody && otherBody.mass > character.mass && relativeVelocity >= CHARACTER_SETTINGS.carKillVelocity) {
 			queueMicrotask(() => {
-				eventBusTriggers.triggerOnDeleteRootCharacter({
-					reason: DeleteCharacterReasons.DEAD_BY_CAR,
+				damaged({
+					idDamaged: id,
+					nicknameDamaging: 'машина',
+					damage: 100,
 				});
 			});
 		}

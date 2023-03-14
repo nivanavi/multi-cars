@@ -25,9 +25,13 @@ import carHit3Sound from './car/car-hit-3.mp3';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import carHit4Sound from './car/car-hit-4.mp3';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import characterHitSound from './character/character-hit.mp3';
+
 import { eventBusSubscriptions, eventBusUnsubscribe, TriggerOnPlaySound } from '../eventBus';
 
-export type soundTypes = 'shotgun' | 'ball' | 'carHit' | 'shotgunReload';
+export type soundTypes = 'shotgun' | 'ball' | 'carHit' | 'characterHit' | 'shotgunReload';
 
 type sounds = {
 	name: soundTypes;
@@ -79,7 +83,18 @@ const sounds: sounds[] = [
 		rateMax: 0.2,
 		lastTime: 0,
 	},
-
+	{
+		name: 'characterHit',
+		sounds: [characterHitSound],
+		minDelta: 100,
+		velocityMin: 1,
+		velocityMultiplier: 1,
+		volumeMin: 0.3,
+		volumeMax: 0.5,
+		rateMin: 1,
+		rateMax: 1,
+		lastTime: 0,
+	},
 	{
 		name: 'carHit',
 		sounds: [carHit1Sound, carHit2Sound, carHit3Sound, carHit4Sound],
