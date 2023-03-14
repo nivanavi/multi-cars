@@ -9,6 +9,7 @@ export enum CORE_EVENTS {
 	ON_CAR_MOVE = 'ON_CAR_MOVE',
 	ON_CHARACTER_MOVE = 'ON_CHARACTER_MOVE',
 	ON_CHARACTER_SHOT = 'ON_CHARACTER_SHOT',
+	ON_CHARACTER_INTERFACE_UPDATE = 'ON_CHARACTER_INTERFACE_UPDATE',
 	ON_BALL_MOVE = 'ON_BALL_MOVE',
 	ON_EXIT_CAR = 'ON_EXIT_CAR',
 	ON_ENTER_CAR = 'ON_ENTER_CAR',
@@ -104,6 +105,7 @@ export type SubscribeOnExitCarCmd = (payload: TriggerOnExitCarCmd) => void;
 export type SubscribeOnCarMoveCmd = (payload: TriggerOnCarMoveCmd) => void;
 export type SubscribeOnBallMoveCmd = (payload: TriggerOnBallMoveCmd) => void;
 export type SubscribeOnCharacterMoveCmd = (payload: TriggerOnCharacterMoveCmd) => void;
+export type SubscribeOnCharacterInterfaceUpdateCmd = (payload: TriggerOnCharacterInterfaceUpdateCmd) => void;
 
 export type TriggerOnCarMoveCmd = {
 	/**
@@ -138,6 +140,12 @@ export type TriggerOnExitCarCmd = {
 export type TriggerOnTickCmd = {
 	time: number;
 	delta: number;
+};
+
+export type TriggerOnCharacterInterfaceUpdateCmd = {
+	hp: number;
+	currentBullets: number;
+	bullets: number;
 };
 
 export type TriggerNotificationsCmd = NotificationMessage;

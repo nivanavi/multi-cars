@@ -20,7 +20,7 @@ const CAMERA_OPTIONS = {
 };
 
 export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: CameraType; destroy: () => void } => {
-	const camera: CameraType = new THREE.PerspectiveCamera(50, 1, 0.4, 10000) as CameraType;
+	const camera: CameraType = new THREE.PerspectiveCamera(50, 1, 0.4, 3000) as CameraType;
 	camera.userData = {
 		rotateX: 0,
 		rotateY: 0,

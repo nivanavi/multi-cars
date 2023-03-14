@@ -5,6 +5,7 @@ import {
 	SubscribeOnBallMoveCmd,
 	SubscribeOnCarMoveCmd,
 	SubscribeOnCharacterDamaged,
+	SubscribeOnCharacterInterfaceUpdateCmd,
 	SubscribeOnCharacterMoveCmd,
 	SubscribeOnCharacterShotCmd,
 	SubscribeOnEnterCarCmd,
@@ -17,6 +18,7 @@ import {
 	TriggerOnBallMoveCmd,
 	TriggerOnCarMoveCmd,
 	TriggerOnCharacterDamagedCmd,
+	TriggerOnCharacterInterfaceUpdateCmd,
 	TriggerOnCharacterMoveCmd,
 	TriggerOnExitCarCmd,
 	TriggerOnPlaySound,
@@ -64,6 +66,9 @@ export const eventBusSubscriptions = {
 	subscribeOnPlaySound: (callback: SubscribeOnPlaySound): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_PLAY_SOUND, callback);
 	},
+	subscribeOnCharacterInterfaceUpdate: (callback: SubscribeOnCharacterInterfaceUpdateCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CHARACTER_INTERFACE_UPDATE, callback);
+	},
 };
 
 export const eventBusUnsubscribe = {
@@ -85,8 +90,17 @@ export const eventBusUnsubscribe = {
 	unsubscribeOnCharacterMove: (callback: SubscribeOnCharacterMoveCmd): void => {
 		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_CHARACTER_MOVE, callback);
 	},
+	unsubscribeOnCharacterInterfaceUpdate: (callback: SubscribeOnCharacterInterfaceUpdateCmd): void => {
+		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_CHARACTER_INTERFACE_UPDATE, callback);
+	},
 	unsubscribeOnPlaySound: (callback: SubscribeOnPlaySound): void => {
 		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_PLAY_SOUND, callback);
+	},
+	unsubscribeOnEnterCar: (callback: SubscribeOnEnterCarCmd): void => {
+		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_ENTER_CAR, callback);
+	},
+	unsubscribeOnExitCar: (callback: SubscribeOnExitCarCmd): void => {
+		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_EXIT_CAR, callback);
 	},
 };
 
@@ -117,6 +131,9 @@ export const eventBusTriggers = {
 	},
 	triggerOnCharacterShot: (): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_CHARACTER_SHOT);
+	},
+	triggerOnCharacterInterfaceUpdate: (payload: TriggerOnCharacterInterfaceUpdateCmd): void => {
+		EVENT_EMITTER.emit(CORE_EVENTS.ON_CHARACTER_INTERFACE_UPDATE, payload);
 	},
 	triggerOnExitCar: (payload: TriggerOnExitCarCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_EXIT_CAR, payload);

@@ -2,13 +2,16 @@ import { Howl } from 'howler';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import shotgun1Sound from './shotgun/shotgun-1.m4a';
+import shotgun1Sound from './shotgun/shotgun-1.mp3';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import shotgun2Sound from './shotgun/shotgun-2.m4a';
+import shotgun2Sound from './shotgun/shotgun-2.mp3';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import shotgun3Sound from './shotgun/shotgun-3.m4a';
+import shotgun3Sound from './shotgun/shotgun-3.mp3';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import shotgunReloadSound from './shotgun/shotgun-reload.mp3';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -22,10 +25,9 @@ import carHit3Sound from './car/car-hit-3.mp3';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import carHit4Sound from './car/car-hit-4.mp3';
-import { eventBusSubscriptions, eventBusUnsubscribe } from '../eventBus/eventBus';
-import { TriggerOnPlaySound } from '../eventBus/types';
+import { eventBusSubscriptions, eventBusUnsubscribe, TriggerOnPlaySound } from '../eventBus';
 
-export type soundTypes = 'shotgun' | 'ball' | 'carHit';
+export type soundTypes = 'shotgun' | 'ball' | 'carHit' | 'shotgunReload';
 
 type sounds = {
 	name: soundTypes;
@@ -43,9 +45,21 @@ type sounds = {
 const sounds: sounds[] = [
 	{
 		name: 'shotgun',
-		sounds: [shotgun1Sound, shotgun2Sound],
-		minDelta: 150,
-		velocityMin: 1,
+		sounds: [shotgun1Sound, shotgun2Sound, shotgun3Sound],
+		minDelta: 200,
+		velocityMin: 0.2,
+		velocityMultiplier: 0.75,
+		volumeMin: 1,
+		volumeMax: 3,
+		rateMin: 1,
+		rateMax: 1,
+		lastTime: 0,
+	},
+	{
+		name: 'shotgunReload',
+		sounds: [shotgunReloadSound],
+		minDelta: 500,
+		velocityMin: 0.2,
 		velocityMultiplier: 0.75,
 		volumeMin: 2,
 		volumeMax: 3,

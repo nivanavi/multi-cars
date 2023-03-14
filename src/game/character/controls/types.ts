@@ -10,4 +10,8 @@ export type SetupCharacterControlCmd = {
 	bones: CharacterBones;
 	camera: CameraType;
 	scene: THREE.Scene;
+	/**
+	 * физический "мир"
+	 */
+	physicWorld: CANNON.World;
 };

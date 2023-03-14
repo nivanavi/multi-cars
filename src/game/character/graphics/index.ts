@@ -13,6 +13,7 @@ import { CreateModelCmd, createModelContainer } from '../../../libs/modelLoader'
 
 const DEFAULT_SPINE_ROTATION = -1.68;
 const DEFAULT_RIGHT_SHOULDER_ROTATION = 1.53;
+const DEFAULT_HIT_MESH_POSITION_Z = -0.2;
 
 const graphics: { fpv: CreateModelCmd; default: CreateModelCmd } = {
 	fpv: {
@@ -58,11 +59,17 @@ export const setupCharacterGraphics = (
 	const bones: CharacterBones = new Map();
 	let mixer: THREE.AnimationMixer | null = null;
 
+	const hitGeometry = new THREE.CylinderGeometry(0.6, 0.5, 1);
+	const hitMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+	const hitMesh = new THREE.Mesh(hitGeometry, hitMaterial);
+	hitMesh.position.set(0, 0.7, DEFAULT_HIT_MESH_POSITION_Z);
+	hitMesh.visible = false;
+	hitMesh.userData = {
+		id,
+	};
+
 	const characterContainer = createModelContainer({
 		...(isFPV ? graphics.fpv : graphics.default),
-		userData: {
-			id,
-		},
 		callback: (_, model) => {
 			const spine = model.scene.getObjectByName('spine') || null;
 			const rightShoulder = model.scene.getObjectByName('rightShoulder') || null;
@@ -82,6 +89,8 @@ export const setupCharacterGraphics = (
 			mixer = setupMixer;
 		},
 	});
+
+	characterContainer.add(hitMesh);
 
 	scene.add(characterContainer);
 
@@ -126,7 +135,7 @@ export const setupCharacterGraphics = (
 
 		shotAnimation.reset().fadeIn(0.2).play();
 
-		const velocity = position ? 1 / characterContainer.position.distanceTo(position) : 1;
+		const velocity = position ? 1 / (characterContainer.position.distanceTo(position) / 20) : 1;
 
 		eventBusTriggers.triggerOnPlaySound({
 			sound: 'shotgun',
@@ -146,6 +155,8 @@ export const setupCharacterGraphics = (
 
 		if (!isFPV && rotateX < CHARACTER_SETTINGS.maxSpineRotation && rotateX > CHARACTER_SETTINGS.minSpineRotation) {
 			spine.rotation.x = DEFAULT_SPINE_ROTATION + changeNumberSign(rotateX);
+			hitMesh.rotation.x = rotateX;
+			hitMesh.position.z = DEFAULT_HIT_MESH_POSITION_Z + rotateX / 2;
 		}
 
 		const currentSpineRotationIncrease = spine.rotation.x - DEFAULT_SPINE_ROTATION;

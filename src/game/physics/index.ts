@@ -5,24 +5,7 @@ export const groundPhysicsMaterial = new CANNON.Material('groundMaterial');
 export const carPhysicsMaterial = new CANNON.Material('carMaterial');
 export const rumpPhysicsMaterial = new CANNON.Material('rumpMaterial');
 export const characterPhysicsMaterial = new CANNON.Material('characterMaterial');
-// export const defaultPhysicsMaterial = new CANNON.Material('dummyMaterial');
-// export const wheelPhysicsMaterial = new CANNON.Material('wheelMaterial');
 
-// const groundDummyContactMaterial = new CANNON.ContactMaterial(groundPhysicsMaterial, dummyPhysicsMaterial, {
-// 	friction: 0.05,
-// 	restitution: 0.3,
-// 	contactEquationStiffness: 1000,
-// });
-// const dummyDummyContactMaterial = new CANNON.ContactMaterial(dummyPhysicsMaterial, dummyPhysicsMaterial, {
-// 	friction: 0.5,
-// 	restitution: 0.3,
-// 	contactEquationStiffness: 1000,
-// });
-// const groundWheelContactMaterial = new CANNON.ContactMaterial(wheelPhysicsMaterial, groundPhysicsMaterial, {
-// 	friction: 0.3,
-// 	restitution: 0,
-// 	contactEquationStiffness: 1000,
-// });
 const groundCarContactMaterial = new CANNON.ContactMaterial(carPhysicsMaterial, groundPhysicsMaterial, {
 	friction: 0.01,
 	restitution: 0,
@@ -51,16 +34,16 @@ const characterCharacterContactMaterial = new CANNON.ContactMaterial(
 	characterPhysicsMaterial,
 	characterPhysicsMaterial,
 	{
-		friction: 0.5,
-		restitution: 3,
-		contactEquationStiffness: 1000,
+		friction: 1,
+		restitution: 1,
+		contactEquationStiffness: 10000,
 	}
 );
 
 const characterCarContactMaterial = new CANNON.ContactMaterial(characterPhysicsMaterial, carPhysicsMaterial, {
-	friction: 0,
+	friction: 0.3,
 	restitution: 0,
-	contactEquationStiffness: 1000,
+	contactEquationStiffness: 10000,
 });
 
 export const setupPhysics = (): {
@@ -75,7 +58,7 @@ export const setupPhysics = (): {
 	// physicWorld.defaultContactMaterial.friction = 0;
 
 	// Sweep and prune broadphase (технология обработки взаимодействия физических тел)
-	// physicWorld.broadphase = new CANNON.SAPBroadphase(physicWorld);
+	physicWorld.broadphase = new CANNON.SAPBroadphase(physicWorld);
 
 	// добавление взаимодействия 2ух материалов
 	physicWorld.addContactMaterial(groundCarContactMaterial);

@@ -24,6 +24,8 @@ import {
 	StyledCarControlsWrapper,
 	StyledCarSteering,
 	StyledGamePageWrapper,
+	StyledHPBar,
+	StyledPersonInfo,
 } from './styles';
 import { ArrowIcon } from '../../icons/ArrowIcon';
 import { ArrowFastIcon } from '../../icons/ArrowFastIcon';
@@ -44,6 +46,7 @@ import {
 	eventBusTriggers,
 	eventBusUnsubscribe,
 	TriggerOnCarMoveCmd,
+	TriggerOnCharacterInterfaceUpdateCmd,
 	TriggerOnCharacterMoveCmd,
 } from '../../eventBus';
 
@@ -188,6 +191,7 @@ const setupGame = (
 					character: physics.character,
 					shotAnimation: graphics.shotAnimation,
 					bones: graphics.bones,
+					physicWorld,
 					scene,
 				});
 
@@ -208,10 +212,13 @@ const setupGame = (
 
 	const shotCharacterHandler = (id: string): void => {
 		const rootCharacterPosition = CHARACTERS_ON_MAP.get(ROOT_ID)?.physics?.character?.position;
+		const rootCarPosition = CARS_ON_MAP.get(ROOT_ID)?.physics?.vehicle?.chassisBody?.position;
 
-		CHARACTERS_ON_MAP.get(id)?.graphics?.shotAnimation(
-			rootCharacterPosition ? cannonToThreeVec(rootCharacterPosition) : undefined
-		);
+		const soundPosition = rootCharacterPosition || rootCarPosition;
+
+		console.log('call shoot from ws', id, ROOT_ID);
+
+		CHARACTERS_ON_MAP.get(id)?.graphics?.shotAnimation(soundPosition ? cannonToThreeVec(soundPosition) : undefined);
 	};
 
 	// ФУНКЦИЯ ПО ОБНОВЛЕНИЮ ДЕФОЛТНОГО ПЕРСОНАЖА
@@ -323,12 +330,46 @@ const MultiCar: React.FC = () => {
 
 const GamePage: React.FC = () => {
 	const navigate = useNavigate();
+	const [stateInfo, setInfo] = React.useState<TriggerOnCharacterInterfaceUpdateCmd | null>(null);
+
+	const updateInterfaceHandler = React.useCallback(
+		(info: TriggerOnCharacterInterfaceUpdateCmd | null) => setInfo(info),
+		[]
+	);
+
+	const onExitCarHandler = React.useCallback(() => {
+		eventBusSubscriptions.subscribeOnCharacterInterfaceUpdate(updateInterfaceHandler);
+	}, [updateInterfaceHandler]);
+
+	const onEnterCarHandler = React.useCallback(() => {
+		eventBusUnsubscribe.unsubscribeOnCharacterInterfaceUpdate(updateInterfaceHandler);
+		setInfo(null);
+	}, [updateInterfaceHandler]);
+
+	React.useEffect(() => {
+		eventBusSubscriptions.subscribeOnExitCar(onExitCarHandler);
+		eventBusSubscriptions.subscribeOnEnterCar(onEnterCarHandler);
+
+		return () => {
+			eventBusUnsubscribe.unsubscribeOnExitCar(onExitCarHandler);
+			eventBusUnsubscribe.unsubscribeOnEnterCar(onEnterCarHandler);
+		};
+	}, [onEnterCarHandler, onExitCarHandler]);
 
 	const goHomePageHandler = React.useCallback(() => navigate('/'), [navigate]);
 
 	return (
 		<SceneIgniterContextProvider>
 			<StyledGamePageWrapper>
+				{stateInfo ? (
+					<StyledPersonInfo>
+						<div className='aimPoint' />
+						<div>
+							{stateInfo.currentBullets} / {stateInfo.bullets}
+						</div>
+						<StyledHPBar hp={stateInfo.hp}>{stateInfo.hp}</StyledHPBar>
+					</StyledPersonInfo>
+				) : null}
 				<button type='button' onClick={goHomePageHandler} className='backNavigate'>
 					<ArrowIcon direction='left' />
 				</button>

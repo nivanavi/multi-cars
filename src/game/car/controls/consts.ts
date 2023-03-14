@@ -8,6 +8,10 @@ export const CAR_SETTINGS = {
 	 */
 	brakeForce: 1,
 	/**
+	 * сила торможения
+	 */
+	slowDownBrakeForce: 0.1,
+	/**
 	 * когда пробовал последний раз встать на колеса
 	 */
 	prevRespawnTime: 0,

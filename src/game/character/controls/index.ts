@@ -2,7 +2,7 @@ import * as CANNON from 'cannon-es';
 import * as THREE from 'three';
 import { CharacterMoveSpecs, eventBusSubscriptions, eventBusTriggers, eventBusUnsubscribe } from '../../../eventBus';
 import { SetupCharacterControlCmd } from './types';
-import { cannonToThreeVec, threeToCannonQuaternion } from '../../../libs/utils';
+import { threeToCannonQuaternion } from '../../../libs/utils';
 
 /**
  * функция осуществляющая рассчет положения персонажа исходя их действий пользователя
@@ -20,34 +20,46 @@ export const setupCharacterControl = (
 		right: false,
 		boost: false,
 
-		contactNormal: new CANNON.Vec3(),
-
 		velocityForce: 7,
 		boostVelocityForce: 10,
-		jumpVelocityForce: 7,
-		shotgunJumpVelocityForce: 15,
+		jumpVelocityForce: 8,
+		shotgunJumpVelocityForce: 20,
 		carKillVelocity: 15,
 
 		hp: 100,
-		bullets: 20000,
+		currentBullets: 2,
+		bullets: 36,
 		isReload: false,
 
-		shotCooldown: 100,
+		shotCooldown: 200,
 		prevShotTime: 0,
 
 		isInTheAir: false,
 	};
 
-	const { id, character, camera, scene, shotAnimation } = props;
+	const { id, character, camera, scene, physicWorld, shotAnimation } = props;
 
 	// делаем луч
 	const shootRaycaster = new THREE.Raycaster();
-	const floorRaycaster = new THREE.Raycaster();
+
+	const floorRaycaster = new CANNON.Ray();
+	floorRaycaster.skipBackfaces = true;
+	floorRaycaster.mode = 1;
+
+	const updateInterface = (): void =>
+		eventBusTriggers.triggerOnCharacterInterfaceUpdate({
+			currentBullets: CHARACTER_SETTINGS.currentBullets,
+			bullets: CHARACTER_SETTINGS.bullets,
+			hp: CHARACTER_SETTINGS.hp,
+		});
+
+	updateInterface();
 
 	const damaged = (damage: number): void => {
 		const nexHp = CHARACTER_SETTINGS.hp - damage;
 		if (nexHp <= 0) return eventBusTriggers.triggerOnEnterCar();
 		CHARACTER_SETTINGS.hp = nexHp;
+		updateInterface();
 	};
 
 	const jumpHandler = (): void => {
@@ -57,11 +69,21 @@ export const setupCharacterControl = (
 	};
 
 	const reloadHandler = (): void => {
-		if (CHARACTER_SETTINGS.bullets === 2 || CHARACTER_SETTINGS.isReload) return;
+		if (CHARACTER_SETTINGS.currentBullets === 2 || CHARACTER_SETTINGS.bullets === 0 || CHARACTER_SETTINGS.isReload)
+			return;
 		CHARACTER_SETTINGS.isReload = true;
+		eventBusTriggers.triggerOnPlaySound({
+			sound: 'shotgunReload',
+			velocity: 1,
+		});
 		setTimeout(() => {
-			CHARACTER_SETTINGS.bullets = 2;
+			const totalBullets = CHARACTER_SETTINGS.bullets + CHARACTER_SETTINGS.currentBullets;
+			const bulletsToUpload = totalBullets === 1 ? 1 : 2;
+
+			CHARACTER_SETTINGS.currentBullets = bulletsToUpload;
+			CHARACTER_SETTINGS.bullets = totalBullets - bulletsToUpload;
 			CHARACTER_SETTINGS.isReload = false;
+			updateInterface();
 		}, 1000);
 	};
 
@@ -69,30 +91,33 @@ export const setupCharacterControl = (
 		const cameraDirectionNegate = new THREE.Vector3();
 		camera.getWorldDirection(cameraDirectionNegate).negate();
 
-		character.velocity.x =
-			character.velocity.x / 2 + cameraDirectionNegate.x * CHARACTER_SETTINGS.shotgunJumpVelocityForce;
-		character.velocity.z =
-			character.velocity.z / 2 + cameraDirectionNegate.z * CHARACTER_SETTINGS.shotgunJumpVelocityForce;
-		character.velocity.y =
-			character.velocity.y / 2 + cameraDirectionNegate.y * CHARACTER_SETTINGS.shotgunJumpVelocityForce;
+		const shotVelocity = new CANNON.Vec3(
+			cameraDirectionNegate.x * CHARACTER_SETTINGS.shotgunJumpVelocityForce,
+			cameraDirectionNegate.y * CHARACTER_SETTINGS.shotgunJumpVelocityForce,
+			cameraDirectionNegate.z * CHARACTER_SETTINGS.shotgunJumpVelocityForce
+		);
+
+		character.velocity.copy(character.velocity.vadd(shotVelocity));
 	};
 
 	const defaultVelocityHandler = (): void => {
+		const { up, down, left, right } = CHARACTER_SETTINGS;
+
 		const inputVelocity = new THREE.Vector3(0, 0, 0);
 
-		if (CHARACTER_SETTINGS.up && !CHARACTER_SETTINGS.down) {
+		if (up && !down) {
 			inputVelocity.z = CHARACTER_SETTINGS.boost
 				? -CHARACTER_SETTINGS.boostVelocityForce
 				: -CHARACTER_SETTINGS.velocityForce;
 		}
-		if (CHARACTER_SETTINGS.down && !CHARACTER_SETTINGS.up) {
+		if (down && !up) {
 			inputVelocity.z = CHARACTER_SETTINGS.velocityForce;
 		}
 
-		if (CHARACTER_SETTINGS.left && !CHARACTER_SETTINGS.right) {
+		if (left && !right) {
 			inputVelocity.x = -CHARACTER_SETTINGS.velocityForce;
 		}
-		if (CHARACTER_SETTINGS.right && !CHARACTER_SETTINGS.left) {
+		if (right && !left) {
 			inputVelocity.x = CHARACTER_SETTINGS.velocityForce;
 		}
 
@@ -105,19 +130,21 @@ export const setupCharacterControl = (
 	};
 
 	const inAirVelocityHandler = (): void => {
+		const { up, down, left, right } = CHARACTER_SETTINGS;
+
 		const inputVelocity = new THREE.Vector3(0, 0, 0);
 
-		if (CHARACTER_SETTINGS.up && !CHARACTER_SETTINGS.down) {
+		if (up && !down) {
 			inputVelocity.z = -CHARACTER_SETTINGS.velocityForce / 100;
 		}
-		if (CHARACTER_SETTINGS.down && !CHARACTER_SETTINGS.up) {
+		if (down && !up) {
 			inputVelocity.z = CHARACTER_SETTINGS.velocityForce / 100;
 		}
 
-		if (CHARACTER_SETTINGS.left && !CHARACTER_SETTINGS.right) {
+		if (left && !right) {
 			inputVelocity.x = -CHARACTER_SETTINGS.velocityForce / 100;
 		}
-		if (CHARACTER_SETTINGS.right && !CHARACTER_SETTINGS.left) {
+		if (right && !left) {
 			inputVelocity.x = CHARACTER_SETTINGS.velocityForce / 100;
 		}
 
@@ -127,6 +154,7 @@ export const setupCharacterControl = (
 
 		character.velocity.x += inputVelocity.x;
 		character.velocity.z += inputVelocity.z;
+		character.velocity.y -= CHARACTER_SETTINGS.velocityForce / 50;
 	};
 
 	const clickHandler = (ev: MouseEvent): void => {
@@ -135,21 +163,22 @@ export const setupCharacterControl = (
 
 		if (
 			currentTime < CHARACTER_SETTINGS.prevShotTime + CHARACTER_SETTINGS.shotCooldown ||
-			CHARACTER_SETTINGS.bullets === 0
+			CHARACTER_SETTINGS.currentBullets === 0 ||
+			CHARACTER_SETTINGS.isReload
 		)
 			return;
 
 		CHARACTER_SETTINGS.prevShotTime = currentTime;
-		CHARACTER_SETTINGS.bullets -= 1;
+		CHARACTER_SETTINGS.currentBullets -= 1;
 
 		shotAnimation();
+		updateInterface();
 		if (CHARACTER_SETTINGS.isInTheAir) shootGunJumpHandler();
 
 		eventBusTriggers.triggerOnCharacterShot();
 
-		const intersects = shootRaycaster.intersectObjects(scene.children, false);
+		const intersects = shootRaycaster.intersectObjects(scene.children);
 		const intersectId = intersects[0]?.object?.userData?.id;
-		// console.log(intersects, intersectId);
 
 		if (!intersectId) return;
 		eventBusTriggers.triggerOnCharacterDamaged({
@@ -161,10 +190,16 @@ export const setupCharacterControl = (
 
 	const onTickPhysic = (): void => {
 		shootRaycaster.setFromCamera(new THREE.Vector2(), camera);
-		floorRaycaster.set(cannonToThreeVec(character.position), new THREE.Vector3(0, -0.1, 0));
 
-		const intersects = floorRaycaster.intersectObjects(scene.children, false);
-		console.log(intersects);
+		floorRaycaster.from.copy(character.position);
+		floorRaycaster.to.set(character.position.x, character.position.y - 1.4, character.position.z);
+		floorRaycaster.direction.set(0, -1, 0);
+
+		floorRaycaster.intersectBodies(physicWorld.bodies);
+
+		CHARACTER_SETTINGS.isInTheAir = !floorRaycaster.result.hasHit;
+
+		floorRaycaster.result.reset();
 
 		if (!CHARACTER_SETTINGS.isInTheAir) defaultVelocityHandler();
 		if (CHARACTER_SETTINGS.isInTheAir) inAirVelocityHandler();
@@ -184,25 +219,15 @@ export const setupCharacterControl = (
 
 	character.addEventListener('collide', (ev: any) => {
 		const relativeVelocity = ev.contact.getImpactVelocityAlongNormal();
-		const { contact } = ev;
+		const { bi, bj } = (ev || {}).contact || {};
 
-		let otherBody: CANNON.Body | null;
-
-		if (contact.bi.id === character.id) {
-			contact.ni.negate(CHARACTER_SETTINGS.contactNormal);
-			otherBody = contact.bj;
-		} else {
-			CHARACTER_SETTINGS.contactNormal.copy(contact.ni);
-			otherBody = contact.bi;
-		}
+		const otherBody: CANNON.Body = bi?.id === character.id ? bj : bi;
 
 		if (otherBody && otherBody.mass > character.mass && relativeVelocity >= CHARACTER_SETTINGS.carKillVelocity) {
-			console.log('dead');
-			// setTimeout(() => damaged(100), 100);
-			// damaged(100);
+			queueMicrotask(() => {
+				damaged(100);
+			});
 		}
-
-		CHARACTER_SETTINGS.isInTheAir = CHARACTER_SETTINGS.contactNormal.dot(new CANNON.Vec3(0, 1, 0)) < 0.5;
 	});
 
 	const keyPressHandler = (ev: KeyboardEvent): void => {

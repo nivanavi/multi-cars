@@ -214,14 +214,22 @@ const setupStartScene = (
 		}
 	};
 
-	const touchEventHandler = (ev: TouchEvent): void => {
-		const isLeftHalf = ev.touches[0].clientX < window.innerWidth / 2;
+	const clickTouchScrollScene = (x: number): void => {
+		const isLeftHalf = x < window.innerWidth / 2;
 		if (isLeftHalf) return changeCarHandler('prev');
 		changeCarHandler('next');
+	};
+	const touchEventHandler = (ev: TouchEvent): void => {
+		clickTouchScrollScene(ev.touches[0].clientX);
+	};
+
+	const mouseupEventHandler = (ev: MouseEvent): void => {
+		clickTouchScrollScene(ev.clientX);
 	};
 
 	window.addEventListener('keydown', keyPressHandler);
 	canvas.addEventListener('touchstart', touchEventHandler);
+	canvas.addEventListener('mouseup', mouseupEventHandler);
 
 	return {
 		destroy: (): void => {

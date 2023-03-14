@@ -69,10 +69,10 @@ export const setupDayNight = (
 	const sunContainer = new THREE.Group();
 
 	const sunMaterial = new THREE.MeshBasicMaterial({ color: '#f9d71c' });
-	const sunGeometry = new THREE.SphereGeometry(75);
+	const sunGeometry = new THREE.SphereGeometry(60);
 	const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
 	sunMesh.castShadow = false;
-	sunMesh.position.set(1000, 0, 500);
+	sunMesh.position.set(700, 0, 500);
 
 	sunContainer.add(sunMesh);
 	scene.add(sunContainer);
