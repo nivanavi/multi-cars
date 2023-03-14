@@ -116,7 +116,7 @@ export const setupWebsocket = (
 		clientData.ball = { position, quaternion };
 	});
 
-	eventBusSubscriptions.subscribeOnTickPhysic(() => {
+	eventBusSubscriptions.subscribeOnTick(() => {
 		sendMessages({
 			action: 'CLIENT_SYNC',
 			payload: {
