@@ -8,8 +8,8 @@ import {
 	SubscribeOnCharacterInterfaceUpdateCmd,
 	SubscribeOnCharacterMoveCmd,
 	SubscribeOnCharacterShotCmd,
-	SubscribeOnEnterCarCmd,
-	SubscribeOnExitCarCmd,
+	SubscribeOnCreateRootCharacterCmd,
+	SubscribeOnDeleteRootCharacterCmd,
 	SubscribeOnPlaySound,
 	SubscribeOnResizeCmd,
 	SubscribeOnTickCmd,
@@ -20,7 +20,7 @@ import {
 	TriggerOnCharacterDamagedCmd,
 	TriggerOnCharacterInterfaceUpdateCmd,
 	TriggerOnCharacterMoveCmd,
-	TriggerOnExitCarCmd,
+	TriggerOnDeleteRootCharacterCmd,
 	TriggerOnPlaySound,
 	TriggerOnResizeCmd,
 	TriggerOnTickCmd,
@@ -51,14 +51,8 @@ export const eventBusSubscriptions = {
 	subscribeOnCharacterMove: (callback: SubscribeOnCharacterMoveCmd): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CHARACTER_MOVE, callback);
 	},
-	subscribeOnEnterCar: (callback: SubscribeOnEnterCarCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_ENTER_CAR, callback);
-	},
 	subscribeOnCharacterShot: (callback: SubscribeOnCharacterShotCmd): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CHARACTER_SHOT, callback);
-	},
-	subscribeOnExitCar: (callback: SubscribeOnExitCarCmd): void => {
-		EVENT_EMITTER.addListener(CORE_EVENTS.ON_EXIT_CAR, callback);
 	},
 	subscribeOnCharacterDamaged: (callback: SubscribeOnCharacterDamaged): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CHARACTER_DAMAGED, callback);
@@ -68,6 +62,12 @@ export const eventBusSubscriptions = {
 	},
 	subscribeOnCharacterInterfaceUpdate: (callback: SubscribeOnCharacterInterfaceUpdateCmd): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CHARACTER_INTERFACE_UPDATE, callback);
+	},
+	subscribeOnDeleteRootCharacter: (callback: SubscribeOnDeleteRootCharacterCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_DELETE_ROOT_CHARACTER, callback);
+	},
+	subscribeOnCreateRootCharacter: (callback: SubscribeOnCreateRootCharacterCmd): void => {
+		EVENT_EMITTER.addListener(CORE_EVENTS.ON_CREATE_ROOT_CHARACTER, callback);
 	},
 };
 
@@ -96,11 +96,11 @@ export const eventBusUnsubscribe = {
 	unsubscribeOnPlaySound: (callback: SubscribeOnPlaySound): void => {
 		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_PLAY_SOUND, callback);
 	},
-	unsubscribeOnEnterCar: (callback: SubscribeOnEnterCarCmd): void => {
-		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_ENTER_CAR, callback);
+	unsubscribeOnDeleteRootCharacter: (callback: SubscribeOnDeleteRootCharacterCmd): void => {
+		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_DELETE_ROOT_CHARACTER, callback);
 	},
-	unsubscribeOnExitCar: (callback: SubscribeOnExitCarCmd): void => {
-		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_EXIT_CAR, callback);
+	unsubscribeOnCreateRootCharacter: (callback: SubscribeOnCreateRootCharacterCmd): void => {
+		EVENT_EMITTER.removeListener(CORE_EVENTS.ON_CREATE_ROOT_CHARACTER, callback);
 	},
 };
 
@@ -126,22 +126,22 @@ export const eventBusTriggers = {
 	triggerNotifications: (payload: TriggerNotificationsCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_NOTIFICATION, payload);
 	},
-	triggerOnEnterCar: (): void => {
-		EVENT_EMITTER.emit(CORE_EVENTS.ON_ENTER_CAR);
-	},
 	triggerOnCharacterShot: (): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_CHARACTER_SHOT);
 	},
 	triggerOnCharacterInterfaceUpdate: (payload: TriggerOnCharacterInterfaceUpdateCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_CHARACTER_INTERFACE_UPDATE, payload);
 	},
-	triggerOnExitCar: (payload: TriggerOnExitCarCmd): void => {
-		EVENT_EMITTER.emit(CORE_EVENTS.ON_EXIT_CAR, payload);
-	},
 	triggerOnCharacterDamaged: (payload: TriggerOnCharacterDamagedCmd): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_CHARACTER_DAMAGED, payload);
 	},
 	triggerOnPlaySound: (payload: TriggerOnPlaySound): void => {
 		EVENT_EMITTER.emit(CORE_EVENTS.ON_PLAY_SOUND, payload);
+	},
+	triggerOnDeleteRootCharacter: (payload: TriggerOnDeleteRootCharacterCmd): void => {
+		EVENT_EMITTER.emit(CORE_EVENTS.ON_DELETE_ROOT_CHARACTER, payload);
+	},
+	triggerOnCreateRootCharacter: (): void => {
+		EVENT_EMITTER.emit(CORE_EVENTS.ON_CREATE_ROOT_CHARACTER);
 	},
 };

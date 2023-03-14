@@ -11,8 +11,8 @@ export enum CORE_EVENTS {
 	ON_CHARACTER_SHOT = 'ON_CHARACTER_SHOT',
 	ON_CHARACTER_INTERFACE_UPDATE = 'ON_CHARACTER_INTERFACE_UPDATE',
 	ON_BALL_MOVE = 'ON_BALL_MOVE',
-	ON_EXIT_CAR = 'ON_EXIT_CAR',
-	ON_ENTER_CAR = 'ON_ENTER_CAR',
+	ON_DELETE_ROOT_CHARACTER = 'ON_DELETE_ROOT_CHARACTER',
+	ON_CREATE_ROOT_CHARACTER = 'ON_CREATE_ROOT_CHARACTER',
 	ON_NOTIFICATION = 'ON_NOTIFICATION',
 	ON_CHARACTER_DAMAGED = 'ON_CHARACTER_DAMAGED',
 	ON_PLAY_SOUND = 'ON_PLAY_SOUND',
@@ -74,9 +74,9 @@ export type CharacterDamaged = {
 	 */
 	idDamaged: string;
 	/**
-	 * id персонажа нанесшего урон
+	 * nickname персонажа нанесшего урон
 	 */
-	idDamaging: string;
+	nicknameDamaging: string;
 	/**
 	 * количество урона
 	 */
@@ -99,9 +99,9 @@ export type SubscribeOnTickCmd = (payload: TriggerOnTickCmd) => void;
 export type SubscribeNotificationsCmd = (payload: TriggerNotificationsCmd) => void;
 export type SubscribeOnResizeCmd = (payload: TriggerOnResizeCmd) => void;
 export type SubscribeOnTickPhysicCmd = () => void;
-export type SubscribeOnEnterCarCmd = () => void;
 export type SubscribeOnCharacterShotCmd = () => void;
-export type SubscribeOnExitCarCmd = (payload: TriggerOnExitCarCmd) => void;
+export type SubscribeOnDeleteRootCharacterCmd = (payload: TriggerOnDeleteRootCharacterCmd) => void;
+export type SubscribeOnCreateRootCharacterCmd = () => void;
 export type SubscribeOnCarMoveCmd = (payload: TriggerOnCarMoveCmd) => void;
 export type SubscribeOnBallMoveCmd = (payload: TriggerOnBallMoveCmd) => void;
 export type SubscribeOnCharacterMoveCmd = (payload: TriggerOnCharacterMoveCmd) => void;
@@ -131,15 +131,21 @@ export type TriggerOnPlaySound = {
 	velocity: number;
 };
 export type TriggerOnCharacterDamagedCmd = CharacterDamaged;
-export type TriggerOnExitCarCmd = {
-	/**
-	 * позиция где производится выход
-	 */
-	position: CANNON.Vec3;
-};
+
 export type TriggerOnTickCmd = {
 	time: number;
 	delta: number;
+};
+
+export enum DeleteCharacterReasons {
+	ENTER_CAR = 'ENTER_CAR',
+	DEAD_BY_PLAYER = 'DEAD_BY_PLAYER',
+	DEAD_BY_CAR = 'DEAD_BY_CAR',
+}
+
+export type TriggerOnDeleteRootCharacterCmd = {
+	reason: DeleteCharacterReasons;
+	killerNickname?: string;
 };
 
 export type TriggerOnCharacterInterfaceUpdateCmd = {

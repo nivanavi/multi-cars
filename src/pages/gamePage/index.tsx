@@ -14,7 +14,7 @@ import { carPhysicsEmulator } from '../../game/car/physicsEmulator';
 import { setupCarControl } from '../../game/car/controls';
 import { setupDayNight } from '../../game/dayNight';
 import { setupWater } from '../../game/water';
-import { GeneralMessageProps, setupWebsocket } from '../../websocket';
+import { setupWebsocket } from '../../websocket';
 import { setupCamera } from '../../game/camera/camera';
 import { cannonToThreeVec, getCarType, getNickname, PREV_ROOM_ITEM, uuid } from '../../libs/utils';
 import { setupRenderer } from '../../libs/renderer';
@@ -109,7 +109,7 @@ const setupGame = (
 		CARS_ON_MAP.delete(id);
 	};
 
-	const updateCarHandler = (data: GeneralMessageProps & CarMoveSpecs): void => {
+	const updateCarHandler = (data: { id: string } & CarMoveSpecs): void => {
 		const isRoot = data.id === ROOT_ID;
 
 		const car = CARS_ON_MAP.get(data.id);
@@ -144,7 +144,6 @@ const setupGame = (
 	// СОЗДАНИЕ ДЕФОЛЬНОЙ МАШИНЫ
 	updateCarHandler({
 		id: ROOT_ID,
-		roomId,
 		...DEFAULT_CAR_SPECS,
 	});
 
@@ -153,7 +152,6 @@ const setupGame = (
 		if (carId !== ROOT_ID) return;
 		updateCarHandler({
 			id: ROOT_ID,
-			roomId,
 			...specs,
 		});
 	};
@@ -170,7 +168,7 @@ const setupGame = (
 		CHARACTERS_ON_MAP.delete(id);
 	};
 
-	const updateCharacterHandler = (data: GeneralMessageProps & CharacterMoveSpecs): void => {
+	const updateCharacterHandler = (data: { id: string } & CharacterMoveSpecs): void => {
 		const isRoot = data.id === ROOT_ID;
 		const character = CHARACTERS_ON_MAP.get(data.id);
 		if (!character) {
@@ -181,16 +179,15 @@ const setupGame = (
 			const graphics = setupCharacterGraphics({
 				id: data.id,
 				scene,
-				// isFPV: true,
 				isFPV: isRoot,
 			});
 			if (isRoot) {
 				const controls = setupCharacterControl({
 					id: ROOT_ID,
+					nickname,
 					camera,
 					character: physics.character,
 					shotAnimation: graphics.shotAnimation,
-					bones: graphics.bones,
 					physicWorld,
 					scene,
 				});
@@ -201,13 +198,15 @@ const setupGame = (
 			}
 		}
 
+		console.log('character.position in update', data.position);
+
 		character?.physics?.update(data);
 		character?.graphics?.update(data);
 	};
 
 	const damageCharacterHandler = (data: CharacterDamaged): void => {
 		if (data.idDamaged !== ROOT_ID) return;
-		CHARACTERS_ON_MAP.get(ROOT_ID)?.controls?.damaged(data.damage);
+		CHARACTERS_ON_MAP.get(ROOT_ID)?.controls?.damaged(data);
 	};
 
 	const shotCharacterHandler = (id: string): void => {
@@ -215,8 +214,6 @@ const setupGame = (
 		const rootCarPosition = CARS_ON_MAP.get(ROOT_ID)?.physics?.vehicle?.chassisBody?.position;
 
 		const soundPosition = rootCharacterPosition || rootCarPosition;
-
-		console.log('call shoot from ws', id, ROOT_ID);
 
 		CHARACTERS_ON_MAP.get(id)?.graphics?.shotAnimation(soundPosition ? cannonToThreeVec(soundPosition) : undefined);
 	};
@@ -226,7 +223,6 @@ const setupGame = (
 		if (characterId !== ROOT_ID) return;
 		updateCharacterHandler({
 			id: ROOT_ID,
-			roomId,
 			...specs,
 		});
 	};
@@ -235,12 +231,13 @@ const setupGame = (
 	eventBusSubscriptions.subscribeOnCharacterMove(rootCharacterUpdate);
 
 	// ПОДПИСКА НА ВЫХОД ИЗ МАШИНЫ ЧТО БЫ СОЗДАТЬ ДЕФОЛТНОГО ПЕРСОНАЖА
-	eventBusSubscriptions.subscribeOnExitCar(({ position }) => {
-		const spawnPosition = new CANNON.Vec3().copy(position);
+	eventBusSubscriptions.subscribeOnCreateRootCharacter(() => {
+		const spawnPosition = new CANNON.Vec3().copy(
+			CARS_ON_MAP.get(ROOT_ID)?.physics?.vehicle?.chassisBody?.position || new CANNON.Vec3()
+		);
 		spawnPosition.y += 3.5;
 		updateCharacterHandler({
 			id: ROOT_ID,
-			roomId,
 			position: spawnPosition,
 			quaternion: new CANNON.Quaternion(),
 			rotateX: 0,
@@ -248,7 +245,7 @@ const setupGame = (
 	});
 
 	// ПОДПИСКА НА ВХОД В МАШИНУ ЧТО БЫ УДАЛИТЬ ДЕФОЛТНОГО ПЕРСОНАЖА
-	eventBusSubscriptions.subscribeOnEnterCar(() => {
+	eventBusSubscriptions.subscribeOnDeleteRootCharacter(() => {
 		deleteCharacterHandler(ROOT_ID);
 	});
 
@@ -347,12 +344,12 @@ const GamePage: React.FC = () => {
 	}, [updateInterfaceHandler]);
 
 	React.useEffect(() => {
-		eventBusSubscriptions.subscribeOnExitCar(onExitCarHandler);
-		eventBusSubscriptions.subscribeOnEnterCar(onEnterCarHandler);
+		eventBusSubscriptions.subscribeOnCreateRootCharacter(onExitCarHandler);
+		eventBusSubscriptions.subscribeOnDeleteRootCharacter(onEnterCarHandler);
 
 		return () => {
-			eventBusUnsubscribe.unsubscribeOnExitCar(onExitCarHandler);
-			eventBusUnsubscribe.unsubscribeOnEnterCar(onEnterCarHandler);
+			eventBusUnsubscribe.unsubscribeOnCreateRootCharacter(onExitCarHandler);
+			eventBusUnsubscribe.unsubscribeOnDeleteRootCharacter(onEnterCarHandler);
 		};
 	}, [onEnterCarHandler, onExitCarHandler]);
 

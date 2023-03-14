@@ -1,6 +1,13 @@
 import * as CANNON from 'cannon-es';
 import * as THREE from 'three';
-import { CharacterMoveSpecs, eventBusSubscriptions, eventBusTriggers, eventBusUnsubscribe } from '../../../eventBus';
+import {
+	CharacterDamaged,
+	CharacterMoveSpecs,
+	DeleteCharacterReasons,
+	eventBusSubscriptions,
+	eventBusTriggers,
+	eventBusUnsubscribe,
+} from '../../../eventBus';
 import { SetupCharacterControlCmd } from './types';
 import { threeToCannonQuaternion } from '../../../libs/utils';
 
@@ -10,7 +17,7 @@ import { threeToCannonQuaternion } from '../../../libs/utils';
 export const setupCharacterControl = (
 	props: SetupCharacterControlCmd
 ): {
-	damaged: (damage: number) => void;
+	damaged: (data: CharacterDamaged) => void;
 	destroy: () => void;
 } => {
 	const CHARACTER_SETTINGS = {
@@ -37,7 +44,9 @@ export const setupCharacterControl = (
 		isInTheAir: false,
 	};
 
-	const { id, character, camera, scene, physicWorld, shotAnimation } = props;
+	const { id, nickname, character, camera, scene, physicWorld, shotAnimation } = props;
+
+	console.log('character.position in control', character.position);
 
 	// делаем луч
 	const shootRaycaster = new THREE.Raycaster();
@@ -55,9 +64,13 @@ export const setupCharacterControl = (
 
 	updateInterface();
 
-	const damaged = (damage: number): void => {
-		const nexHp = CHARACTER_SETTINGS.hp - damage;
-		if (nexHp <= 0) return eventBusTriggers.triggerOnEnterCar();
+	const damaged = (data: CharacterDamaged): void => {
+		const nexHp = CHARACTER_SETTINGS.hp - data.damage;
+		if (nexHp <= 0)
+			return eventBusTriggers.triggerOnDeleteRootCharacter({
+				reason: DeleteCharacterReasons.DEAD_BY_PLAYER,
+				killerNickname: data.nicknameDamaging,
+			});
 		CHARACTER_SETTINGS.hp = nexHp;
 		updateInterface();
 	};
@@ -178,12 +191,12 @@ export const setupCharacterControl = (
 		eventBusTriggers.triggerOnCharacterShot();
 
 		const intersects = shootRaycaster.intersectObjects(scene.children);
-		const intersectId = intersects[0]?.object?.userData?.id;
+		const { id: idDamaged } = intersects[0]?.object?.userData || {};
 
-		if (!intersectId) return;
+		if (!idDamaged) return;
 		eventBusTriggers.triggerOnCharacterDamaged({
-			idDamaged: intersectId,
-			idDamaging: id,
+			idDamaged,
+			nicknameDamaging: nickname,
 			damage: 25,
 		});
 	};
@@ -214,6 +227,8 @@ export const setupCharacterControl = (
 			rotateX: camera.userData.rotateX,
 		};
 
+		console.log('character.position in trigger', character.position);
+
 		eventBusTriggers.triggerOnCharacterMove({ id, ...characterMoveSpecs });
 	};
 
@@ -225,7 +240,9 @@ export const setupCharacterControl = (
 
 		if (otherBody && otherBody.mass > character.mass && relativeVelocity >= CHARACTER_SETTINGS.carKillVelocity) {
 			queueMicrotask(() => {
-				damaged(100);
+				eventBusTriggers.triggerOnDeleteRootCharacter({
+					reason: DeleteCharacterReasons.DEAD_BY_CAR,
+				});
 			});
 		}
 	});
@@ -257,7 +274,9 @@ export const setupCharacterControl = (
 				break;
 			case 'KeyF':
 				if (!isPressed) return;
-				eventBusTriggers.triggerOnEnterCar();
+				eventBusTriggers.triggerOnDeleteRootCharacter({
+					reason: DeleteCharacterReasons.ENTER_CAR,
+				});
 				break;
 			default:
 				break;

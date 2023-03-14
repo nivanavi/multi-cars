@@ -109,7 +109,7 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 			updateCameraPosition(new THREE.Vector3(position.x, position.y, position.z));
 	});
 
-	eventBusSubscriptions.subscribeOnEnterCar(() => {
+	eventBusSubscriptions.subscribeOnDeleteRootCharacter(() => {
 		CAMERA_OPTIONS.isCarCamera = true;
 		CAMERA_OPTIONS.isCharacterCamera = false;
 		cameraCharacterXContainer.remove(camera);
@@ -117,7 +117,7 @@ export const setupCamera = (scene: THREE.Scene, watchId: string): { camera: Came
 		camera.position.set(0, 0, CAMERA_OPTIONS.currentZoom);
 	});
 
-	eventBusSubscriptions.subscribeOnExitCar(() => {
+	eventBusSubscriptions.subscribeOnCreateRootCharacter(() => {
 		CAMERA_OPTIONS.isCarCamera = false;
 		CAMERA_OPTIONS.isCharacterCamera = true;
 		cameraCarXContainer.remove(camera);

@@ -245,9 +245,7 @@ export const setupCarControl = (
 				break;
 			case 'KeyF':
 				if (!isPressed) return;
-				eventBusTriggers.triggerOnExitCar({
-					position: vehicle.chassisBody.position,
-				});
+				eventBusTriggers.triggerOnCreateRootCharacter();
 				break;
 			default:
 				break;
@@ -285,6 +283,7 @@ export const setupCarControl = (
 	};
 
 	const touchHandler = (ev: TouchEvent): void => {
+		if (!CAR_SETTINGS.isNowControlled) return;
 		const isPressed = ev.type === 'touchstart';
 		const controlId = (ev?.target as HTMLElement)?.id as CAR_CONTROLS_IDS | undefined;
 		if (!controlId || !Object.keys(CAR_CONTROLS_IDS).includes(controlId)) return;
@@ -301,10 +300,10 @@ export const setupCarControl = (
 		CAR_SETTINGS.boost = false;
 	};
 
-	eventBusSubscriptions.subscribeOnEnterCar(() => {
+	eventBusSubscriptions.subscribeOnDeleteRootCharacter(() => {
 		CAR_SETTINGS.isNowControlled = true;
 	});
-	eventBusSubscriptions.subscribeOnExitCar(() => {
+	eventBusSubscriptions.subscribeOnCreateRootCharacter(() => {
 		CAR_SETTINGS.isNowControlled = false;
 		windowBlurHandler();
 	});

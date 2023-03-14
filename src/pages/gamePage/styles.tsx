@@ -46,6 +46,7 @@ export const StyledGamePageWrapper = styled.div`
 
 export const StyledPersonInfo = styled.div`
 	font-family: JetBrains Mono, sans-serif;
+	color: black;
 	font-size: 25px;
 	display: flex;
 	align-items: center;
@@ -72,7 +73,7 @@ export const StyledHPBar = styled.div<{ hp: number }>`
 		left: 0;
 		width: ${({ hp }): number => hp}%;
 		height: 100%;
-		opacity: 0.5;
+		opacity: 0.3;
 		background: red;
 	}
 `;
