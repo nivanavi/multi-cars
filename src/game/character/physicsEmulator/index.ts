@@ -37,7 +37,7 @@ export const characterPhysicsEmulator = (
 		update: (specs): void => {
 			// обновляем поворот и позицию человека в пространстве
 			characterBody.position.copy(specs.position);
-			characterBody.quaternion.copy(specs.quaternion);
+			characterBody.quaternion.set(0, 0, 0, 0);
 		},
 		destroy,
 	};

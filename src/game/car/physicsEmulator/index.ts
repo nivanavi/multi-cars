@@ -13,7 +13,6 @@ export const carPhysicsEmulator = (
 	update: (specs: CarMoveSpecs) => void;
 } => {
 	const { physicWorld } = props;
-	let CAR_SPECS: CarMoveSpecs | null = null;
 
 	const chassisShape = new CANNON.Box(
 		new CANNON.Vec3(CAR_SETTINGS.chassisLength, CAR_SETTINGS.chassisHeight, CAR_SETTINGS.chassisWidth)
@@ -64,44 +63,39 @@ export const carPhysicsEmulator = (
 
 	vehicle.addToWorld(physicWorld);
 
-	eventBusSubscriptions.subscribeOnTickPhysic(() => {
-		if (!CAR_SPECS) return;
-		// обновляем поворот колес
-		vehicle.setSteeringValue(CAR_SPECS.steering, CAR_SETTINGS.frontLeft);
-		vehicle.setSteeringValue(CAR_SPECS.steering, CAR_SETTINGS.frontRight);
-
-		// обновляем ускорение автомобиля
-		if (WHEEL_SETTINGS.is4x4) {
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.frontLeft);
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.frontRight);
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backLeft);
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backRight);
-		} else {
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backLeft);
-			vehicle.applyEngineForce(CAR_SPECS.accelerating, CAR_SETTINGS.backRight);
-		}
-
-		// обновляем торможение автомобиля
-		vehicle.setBrake(CAR_SPECS.brake, 0);
-		vehicle.setBrake(CAR_SPECS.brake, 1);
-		vehicle.setBrake(CAR_SPECS.brake, 2);
-		vehicle.setBrake(CAR_SPECS.brake, 3);
-
-		if (CAR_SPECS.chassis) {
-			vehicle.chassisBody.position.copy(CAR_SPECS.chassis.position);
-			vehicle.chassisBody.quaternion.copy(CAR_SPECS.chassis.quaternion);
-		}
-
-		// обновляем физическое положение колес
-		vehicle.wheelInfos.forEach((wheel, index) => {
-			vehicle.updateWheelTransform(index);
-		});
-	});
-
 	return {
 		vehicle,
 		update: (specs): void => {
-			CAR_SPECS = specs;
+			// обновляем поворот колес
+			vehicle.setSteeringValue(specs.steering, CAR_SETTINGS.frontLeft);
+			vehicle.setSteeringValue(specs.steering, CAR_SETTINGS.frontRight);
+
+			// обновляем ускорение автомобиля
+			if (WHEEL_SETTINGS.is4x4) {
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.frontLeft);
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.frontRight);
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.backLeft);
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.backRight);
+			} else {
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.backLeft);
+				vehicle.applyEngineForce(specs.accelerating, CAR_SETTINGS.backRight);
+			}
+
+			// обновляем торможение автомобиля
+			vehicle.setBrake(specs.brake, 0);
+			vehicle.setBrake(specs.brake, 1);
+			vehicle.setBrake(specs.brake, 2);
+			vehicle.setBrake(specs.brake, 3);
+
+			if (specs.chassis) {
+				vehicle.chassisBody.position.copy(specs.chassis.position);
+				vehicle.chassisBody.quaternion.copy(specs.chassis.quaternion);
+			}
+
+			// обновляем физическое положение колес
+			vehicle.wheelInfos.forEach((wheel, index) => {
+				vehicle.updateWheelTransform(index);
+			});
 		},
 		destroy: (): void => {
 			vehicle.removeFromWorld(physicWorld);

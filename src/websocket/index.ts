@@ -77,8 +77,8 @@ export const setupWebsocket = (
 		clientData.car = { chassis, steering, type, accelerating, brake, wheels };
 	});
 
-	eventBusSubscriptions.subscribeOnCharacterMove(({ position, quaternion, rotateX }) => {
-		clientData.character = { position, quaternion, rotateX };
+	eventBusSubscriptions.subscribeOnCharacterMove(({ position, rotateY, rotateX }) => {
+		clientData.character = { position, rotateY, rotateX };
 	});
 
 	eventBusSubscriptions.subscribeOnCharacterShot(() => {
@@ -116,7 +116,7 @@ export const setupWebsocket = (
 		clientData.ball = { position, quaternion };
 	});
 
-	eventBusSubscriptions.subscribeOnTick(() => {
+	eventBusSubscriptions.subscribeOnTickPhysic(() => {
 		sendMessages({
 			action: 'CLIENT_SYNC',
 			payload: {

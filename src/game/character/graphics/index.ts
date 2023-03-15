@@ -6,7 +6,7 @@ import {
 	eventBusUnsubscribe,
 	TriggerOnTickCmd,
 } from '../../../eventBus';
-import { cannonToThreeQuaternion, cannonToThreeVec, changeNumberSign } from '../../../libs/utils';
+import { cannonToThreeVec, changeNumberSign } from '../../../libs/utils';
 import { MODELS_SRC } from '../../../models';
 import { Animations, CharacterAnimations, CharacterBones, CharacterGraphicsCmd } from './types';
 import { CreateModelCmd, createModelContainer } from '../../../libs/modelLoader';
@@ -51,8 +51,6 @@ export const setupCharacterGraphics = (
 
 		minShoulderRotation: -1.15,
 		maxShoulderRotation: 1.15,
-
-		isPlayIdleAnimations: false,
 	};
 
 	const animations: CharacterAnimations = new Map();
@@ -66,6 +64,33 @@ export const setupCharacterGraphics = (
 	hitMesh.visible = false;
 	hitMesh.userData = {
 		id,
+	};
+
+	const setupDefaultAnimationsHandler = (): void => {
+		if (isFPV) return;
+
+		const tornadoAnimation = animations.get('tornadoIdle');
+		const windAnimation = animations.get('windIdle');
+		const devilIdleAnimation = animations.get('devilIdle');
+
+		if (!tornadoAnimation || !windAnimation || !devilIdleAnimation) return;
+
+		tornadoAnimation.timeScale = 10;
+		windAnimation.timeScale = 5;
+
+		tornadoAnimation.reset().play();
+		windAnimation.reset().play();
+		devilIdleAnimation.reset().play();
+	};
+
+	const setupFPVAnimationsHandler = (): void => {
+		if (!isFPV) return;
+
+		const devilIdleFPVAnimation = animations.get('devilIdleFPV');
+
+		if (!devilIdleFPVAnimation) return;
+
+		devilIdleFPVAnimation.reset().play();
 	};
 
 	const characterContainer = createModelContainer({
@@ -87,43 +112,15 @@ export const setupCharacterGraphics = (
 				animations.set(animation.name as Animations, setupMixer.clipAction(animation))
 			);
 			mixer = setupMixer;
+
+			setupDefaultAnimationsHandler();
+			setupFPVAnimationsHandler();
 		},
 	});
 
 	characterContainer.add(hitMesh);
 
 	scene.add(characterContainer);
-
-	const setupDefaultAnimationsHandler = (): void => {
-		if (CHARACTER_SETTINGS.isPlayIdleAnimations || isFPV) return;
-
-		const tornadoAnimation = animations.get('tornadoIdle');
-		const windAnimation = animations.get('windIdle');
-		const devilIdleAnimation = animations.get('devilIdle');
-
-		if (!tornadoAnimation || !windAnimation || !devilIdleAnimation) return;
-
-		tornadoAnimation.timeScale = 10;
-		windAnimation.timeScale = 5;
-
-		tornadoAnimation.reset().play();
-		windAnimation.reset().play();
-		devilIdleAnimation.reset().play();
-
-		CHARACTER_SETTINGS.isPlayIdleAnimations = true;
-	};
-
-	const setupFPVAnimationsHandler = (): void => {
-		if (CHARACTER_SETTINGS.isPlayIdleAnimations || !isFPV) return;
-
-		const devilIdleFPVAnimation = animations.get('devilIdleFPV');
-
-		if (!devilIdleFPVAnimation) return;
-
-		devilIdleFPVAnimation.reset().play();
-
-		CHARACTER_SETTINGS.isPlayIdleAnimations = true;
-	};
 
 	const shotAnimationHandler = (position?: THREE.Vector3): void => {
 		const shotAnimation = isFPV ? animations.get('devilShotFPV') : animations.get('devilShot');
@@ -144,9 +141,11 @@ export const setupCharacterGraphics = (
 	};
 
 	const update = (specs: CharacterMoveSpecs): void => {
-		const { position, quaternion, rotateX } = specs;
+		const { position, rotateY, rotateX } = specs;
+		const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotateY, 0));
+
 		characterContainer.position.copy(cannonToThreeVec(position));
-		characterContainer.quaternion.copy(cannonToThreeQuaternion(quaternion));
+		characterContainer.quaternion.copy(quaternion);
 
 		const spine = bones.get('spine');
 		const rightShoulder = bones.get('rightShoulder');
@@ -166,8 +165,6 @@ export const setupCharacterGraphics = (
 	};
 
 	const callInTickHandler = ({ delta }: TriggerOnTickCmd): void => {
-		setupDefaultAnimationsHandler();
-		setupFPVAnimationsHandler();
 		if (mixer) mixer.update(delta);
 	};
 

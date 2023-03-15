@@ -58,7 +58,7 @@ const setupGame = (
 	destroy: () => void;
 } => {
 	// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ИГРЫ
-	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'dev';
+	const IS_DEV_MODE = process.env.REACT_APP_MODE === 'devс';
 	const CAR_TYPE = getCarType();
 	const ROOT_ID = uuid();
 
@@ -126,9 +126,6 @@ const setupGame = (
 					id: data.id,
 					type: data.type || CAR_TYPE,
 					vehicle: physics.vehicle,
-					updateSpecs: specs => {
-						physics.update(specs);
-					},
 				});
 
 				CARS_ON_MAP.set(data.id, { physics, graphics, controls });
@@ -198,8 +195,6 @@ const setupGame = (
 			}
 		}
 
-		console.log('character.position in update', data.position);
-
 		character?.physics?.update(data);
 		character?.graphics?.update(data);
 	};
@@ -239,7 +234,7 @@ const setupGame = (
 		updateCharacterHandler({
 			id: ROOT_ID,
 			position: spawnPosition,
-			quaternion: new CANNON.Quaternion(),
+			rotateY: 0,
 			rotateX: 0,
 		});
 	});

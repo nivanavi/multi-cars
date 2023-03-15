@@ -59,11 +59,11 @@ export type CharacterMoveSpecs = {
 	 */
 	position: CANNON.Vec3;
 	/**
-	 * текущий поворот персонажа
+	 * вращение персонажа  по y
 	 */
-	quaternion: CANNON.Quaternion;
+	rotateY: number;
 	/**
-	 * наклон персонажа
+	 * вращение персонажа  по x
 	 */
 	rotateX: number;
 };

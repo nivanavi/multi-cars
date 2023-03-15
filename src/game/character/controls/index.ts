@@ -9,7 +9,6 @@ import {
 	eventBusUnsubscribe,
 } from '../../../eventBus';
 import { SetupCharacterControlCmd } from './types';
-import { threeToCannonQuaternion } from '../../../libs/utils';
 
 /**
  * функция осуществляющая рассчет положения персонажа исходя их действий пользователя
@@ -203,9 +202,7 @@ export const setupCharacterControl = (
 		});
 	};
 
-	const onTickPhysic = (): void => {
-		shootRaycaster.setFromCamera(new THREE.Vector2(), camera);
-
+	const onTickPhysicHandler = (): void => {
 		floorRaycaster.from.copy(character.position);
 		floorRaycaster.to.set(character.position.x, character.position.y - 1.4, character.position.z);
 		floorRaycaster.direction.set(0, -1, 0);
@@ -221,13 +218,11 @@ export const setupCharacterControl = (
 	};
 
 	const onTickHandler = (): void => {
-		const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, camera.userData.rotateY, 0));
-
-		character.quaternion.copy(threeToCannonQuaternion(quaternion));
+		shootRaycaster.setFromCamera(new THREE.Vector2(), camera);
 
 		const characterMoveSpecs: CharacterMoveSpecs = {
 			position: character.position,
-			quaternion: character.quaternion,
+			rotateY: camera.userData.rotateY,
 			rotateX: camera.userData.rotateX,
 		};
 
@@ -333,7 +328,7 @@ export const setupCharacterControl = (
 		CHARACTER_SETTINGS.boost = false;
 	};
 
-	eventBusSubscriptions.subscribeOnTickPhysic(onTickPhysic);
+	eventBusSubscriptions.subscribeOnTickPhysic(onTickPhysicHandler);
 	eventBusSubscriptions.subscribeOnTick(onTickHandler);
 
 	// window.addEventListener('touchstart', touchHandler, { passive: false });
@@ -346,7 +341,7 @@ export const setupCharacterControl = (
 	return {
 		damaged,
 		destroy: (): void => {
-			eventBusUnsubscribe.unsubscribeOnTickPhysic(onTickPhysic);
+			eventBusUnsubscribe.unsubscribeOnTickPhysic(onTickPhysicHandler);
 			eventBusUnsubscribe.unsubscribeOnTick(onTickHandler);
 			// window.removeEventListener('touchstart', touchHandler);
 			// window.removeEventListener('touchend', touchHandler);

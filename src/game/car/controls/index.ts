@@ -1,5 +1,5 @@
 import * as CANNON from 'cannon-es';
-import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers } from '../../../eventBus';
+import { CarMoveSpecs, eventBusSubscriptions, eventBusTriggers, eventBusUnsubscribe } from '../../../eventBus';
 import { CAR_CONTROLS_IDS } from './enums';
 import { DEFAULT_CAR_SPECS } from './consts';
 import { SetupCarControlCmd } from './types';
@@ -12,13 +12,13 @@ export const setupCarControl = (
 ): {
 	destroy: () => void;
 } => {
-	const { id, type, vehicle, updateSpecs } = props;
+	const { id, type, vehicle } = props;
 
 	const CAR_SETTINGS = {
 		/**
 		 * скорость поворота колес
 		 */
-		steeringSpeed: 2.8,
+		steeringSpeed: 0.07,
 		/**
 		 * сила торможения
 		 */
@@ -92,12 +92,11 @@ export const setupCarControl = (
 			CURRENT_SPECS.steering = Math.sign(CURRENT_SPECS.steering) * CAR_SETTINGS.maxSteeringForce;
 		}
 	};
-	const steeringHandler = (delta: number): void => {
-		const steeringSpeed = CAR_SETTINGS.steeringSpeed * delta;
+	const steeringHandler = (): void => {
 		// случай когда нажали и налево и направо или не нажаты кнопки поворота
 		if ((CAR_SETTINGS.right && CAR_SETTINGS.left) || (!CAR_SETTINGS.right && !CAR_SETTINGS.left)) {
-			if (Math.abs(CURRENT_SPECS.steering) > 0 && Math.abs(CURRENT_SPECS.steering) > steeringSpeed) {
-				CURRENT_SPECS.steering -= steeringSpeed * Math.sign(CURRENT_SPECS.steering);
+			if (Math.abs(CURRENT_SPECS.steering) > 0 && Math.abs(CURRENT_SPECS.steering) > CAR_SETTINGS.steeringSpeed) {
+				CURRENT_SPECS.steering -= CAR_SETTINGS.steeringSpeed * Math.sign(CURRENT_SPECS.steering);
 			} else {
 				CURRENT_SPECS.steering = 0;
 			}
@@ -105,12 +104,12 @@ export const setupCarControl = (
 		}
 		// если не нажаты оба и нажато вправо
 		if (CAR_SETTINGS.right) {
-			CURRENT_SPECS.steering -= steeringSpeed;
+			CURRENT_SPECS.steering -= CAR_SETTINGS.steeringSpeed;
 			return;
 		}
 		// если не нажаты оба и нажато влево
 		if (CAR_SETTINGS.left) {
-			CURRENT_SPECS.steering += steeringSpeed;
+			CURRENT_SPECS.steering += CAR_SETTINGS.steeringSpeed;
 		}
 	};
 
@@ -188,12 +187,12 @@ export const setupCarControl = (
 		vehicle.chassisBody.applyImpulse(new CANNON.Vec3(0, 50, 0), new CANNON.Vec3(2, 0, 2));
 	};
 
-	eventBusSubscriptions.subscribeOnTick(({ delta }) => {
+	const onTickPhysicHandler = (): void => {
 		// рассчитываем скорость и направление движения
 		calcDirectionHandler();
 
 		// обновляем поворот колес
-		steeringHandler(delta);
+		steeringHandler();
 		checkCornerCaseSteering();
 
 		// обновляем ускорение автомобиля
@@ -202,9 +201,9 @@ export const setupCarControl = (
 
 		// обновляем торможение
 		brakeHandler();
+	};
 
-		updateSpecs(CURRENT_SPECS);
-
+	const onTickHandler = (): void => {
 		const carMoveSpecs: CarMoveSpecs = {
 			steering: CURRENT_SPECS.steering,
 			accelerating: CURRENT_SPECS.accelerating,
@@ -221,7 +220,7 @@ export const setupCarControl = (
 		};
 
 		eventBusTriggers.triggerOnCarMove({ id, ...carMoveSpecs });
-	});
+	};
 
 	// todo сделать машинку аркаднее (интересное управление фо фан) | done
 	// todo разграничение зон ответсвенности физика\графика\обновление данных с сервера | done
@@ -367,6 +366,10 @@ export const setupCarControl = (
 		CAR_SETTINGS.boost = false;
 	};
 
+	eventBusSubscriptions.subscribeOnTickPhysic(onTickPhysicHandler);
+
+	eventBusSubscriptions.subscribeOnTick(onTickHandler);
+
 	eventBusSubscriptions.subscribeOnDeleteRootCharacter(() => {
 		CAR_SETTINGS.isNowControlled = true;
 	});
@@ -383,6 +386,9 @@ export const setupCarControl = (
 
 	return {
 		destroy: (): void => {
+			eventBusUnsubscribe.unsubscribeOnTick(onTickHandler);
+			eventBusUnsubscribe.unsubscribeOnTickPhysic(onTickPhysicHandler);
+
 			window.removeEventListener('touchstart', touchHandler);
 			window.removeEventListener('touchend', touchHandler);
 			window.removeEventListener('keydown', keyPressHandler);

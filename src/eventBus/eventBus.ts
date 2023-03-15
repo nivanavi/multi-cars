@@ -28,6 +28,8 @@ import {
 
 const EVENT_EMITTER = new EventEmitter();
 
+EVENT_EMITTER.setMaxListeners(15);
+
 export const eventBusSubscriptions = {
 	subscribeOnTick: (callback: SubscribeOnTickCmd): void => {
 		EVENT_EMITTER.addListener(CORE_EVENTS.ON_TICK, callback);

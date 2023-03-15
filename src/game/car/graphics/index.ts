@@ -79,30 +79,26 @@ export const setupCarGraphics = (
 		},
 	});
 
-	const update = (specs: CarMoveSpecs): void => {
-		const { chassis, wheels } = specs || {};
-		const { position, quaternion } = chassis || {};
-		if (!position || !quaternion) return;
-		carContainer.position.copy(cannonToThreeVec(position));
-		carContainer.quaternion.copy(cannonToThreeQuaternion(quaternion));
-		if (!wheels || !wheelsGraphic.length) return;
-		wheels.forEach((wheel, index) => {
-			const { position: wheelPosition, quaternion: wheelQuaternion } = wheel || {};
-			if (!position || !quaternion) return;
-			wheelsGraphic[index].position.copy(cannonToThreeVec(wheelPosition));
-			wheelsGraphic[index].quaternion.copy(cannonToThreeQuaternion(wheelQuaternion));
-		});
-	};
-
-	const destroy = (): void => {
-		scene.remove(carContainer);
-		wheelsGraphic.forEach(wheel => scene.remove(wheel));
-	};
-
 	return {
 		carContainer,
 		wheels: wheelsGraphic,
-		update,
-		destroy,
+		update: (specs): void => {
+			const { chassis, wheels } = specs || {};
+			const { position, quaternion } = chassis || {};
+			if (!position || !quaternion) return;
+			carContainer.position.copy(cannonToThreeVec(position));
+			carContainer.quaternion.copy(cannonToThreeQuaternion(quaternion));
+			if (!wheels || !wheelsGraphic.length) return;
+			wheels.forEach((wheel, index) => {
+				const { position: wheelPosition, quaternion: wheelQuaternion } = wheel || {};
+				if (!position || !quaternion) return;
+				wheelsGraphic[index].position.copy(cannonToThreeVec(wheelPosition));
+				wheelsGraphic[index].quaternion.copy(cannonToThreeQuaternion(wheelQuaternion));
+			});
+		},
+		destroy: (): void => {
+			scene.remove(carContainer);
+			wheelsGraphic.forEach(wheel => scene.remove(wheel));
+		},
 	};
 };
